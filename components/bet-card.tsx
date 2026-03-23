@@ -62,6 +62,7 @@ const CATEGORY_BG = {
 
 export function BetCard({ bet }: BetCardProps) {
   const [isUpdating, setIsUpdating] = useState(false)
+  const [status, setStatus] = useState(bet.status)
   const [upvotes, setUpvotes] = useState(bet.upvotes ?? 0)
   const [downvotes, setDownvotes] = useState(bet.downvotes ?? 0)
   const [myVote, setMyVote] = useState<"up" | "down" | null>(null)
@@ -71,14 +72,19 @@ export function BetCard({ bet }: BetCardProps) {
     setMemberName(localStorage.getItem("wett-ticker-member"))
   }, [])
 
-  async function updateStatus(status: "won" | "lost" | "pending") {
+  async function updateStatus(newStatus: "won" | "lost" | "pending") {
+    const prev = status
+    setStatus(newStatus)
     setIsUpdating(true)
     try {
-      await fetch(`/api/bets/${bet.id}`, {
+      const res = await fetch(`/api/bets/${bet.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: newStatus }),
       })
+      if (!res.ok) setStatus(prev)
+    } catch {
+      setStatus(prev)
     } finally {
       setIsUpdating(false)
     }
@@ -141,9 +147,9 @@ export function BetCard({ bet }: BetCardProps) {
   return (
     <Card
       className={`border-border/50 overflow-hidden ${
-        bet.status === "won"
+        status === "won"
           ? "border-green-500/30"
-          : bet.status === "lost"
+          : status === "lost"
           ? "border-red-500/20"
           : isAction
           ? "border-amber-500/20"
@@ -182,7 +188,7 @@ export function BetCard({ bet }: BetCardProps) {
                   )}
                 </div>
               </div>
-              <StatusBadge status={bet.status} />
+              <StatusBadge status={status} />
             </div>
           </div>
         </div>
@@ -332,7 +338,7 @@ export function BetCard({ bet }: BetCardProps) {
             </button>
 
             {/* Status-Buttons (nur bei Wetten, nicht bei reinen Aktionen) */}
-            {!isAction && bet.status === "pending" && (
+            {!isAction && status === "pending" && (
               <>
                 <div className="w-px h-4 bg-border mx-0.5" />
                 <Button
@@ -358,7 +364,7 @@ export function BetCard({ bet }: BetCardProps) {
               </>
             )}
 
-            {!isAction && bet.status !== "pending" && (
+            {!isAction && status !== "pending" && (
               <>
                 <div className="w-px h-4 bg-border mx-0.5" />
                 <Button
