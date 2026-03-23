@@ -9,7 +9,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen max-w-xl mx-auto w-full">
       {/* Header */}
-      <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-border/50 bg-background/80 backdrop-blur-sm">
+      <header className="sticky top-0 z-10 flex items-center justify-between px-4 pb-3 border-b border-border/50 bg-background/80 backdrop-blur-sm" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
         <div>
           <h1 className="font-bold text-lg leading-none">Wett-Ticker 🎯</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Community Tipps</p>
@@ -18,7 +18,7 @@ export default function Home() {
       </header>
 
       {/* Main */}
-      <main className="flex-1 px-4 py-4">
+      <main className="flex-1 px-4 py-4" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
         <Tabs defaultValue="tipps">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="tipps" className="flex-1">

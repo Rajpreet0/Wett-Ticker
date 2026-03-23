@@ -55,5 +55,14 @@ export function useBets() {
     }
   }, [])
 
-  return { bets, isLoading, error }
+  async function refresh() {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("bets")
+      .select("*")
+      .order("created_at", { ascending: false })
+    if (!error && data) setBets(data as Bet[])
+  }
+
+  return { bets, isLoading, error, refresh }
 }

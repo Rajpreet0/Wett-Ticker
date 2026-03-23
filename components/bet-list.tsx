@@ -5,9 +5,10 @@ import { de } from "date-fns/locale"
 import { Loader2, Inbox } from "lucide-react"
 import { useBets } from "@/hooks/use-bets"
 import { BetCard } from "./bet-card"
+import { PullToRefresh } from "./pull-to-refresh"
 
 export function BetList() {
-  const { bets, isLoading, error } = useBets()
+  const { bets, isLoading, error, refresh } = useBets()
 
   if (isLoading) {
     return (
@@ -43,17 +44,19 @@ export function BetList() {
   }, {})
 
   return (
-    <div className="space-y-6">
-      {Object.entries(grouped).map(([date, dateBets]) => (
-        <div key={date} className="space-y-3">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
-            {date}
-          </h3>
-          {dateBets.map((bet) => (
-            <BetCard key={bet.id} bet={bet} />
-          ))}
-        </div>
-      ))}
-    </div>
+    <PullToRefresh onRefresh={refresh}>
+      <div className="space-y-6">
+        {Object.entries(grouped).map(([date, dateBets]) => (
+          <div key={date} className="space-y-3">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
+              {date}
+            </h3>
+            {dateBets.map((bet) => (
+              <BetCard key={bet.id} bet={bet} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </PullToRefresh>
   )
 }
