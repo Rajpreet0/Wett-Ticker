@@ -295,91 +295,90 @@ export function BetCard({ bet }: BetCardProps) {
           </div>
         )}
 
-        {/* ── Footer: Datum + Status-Buttons + Votes ── */}
-        <div className="flex items-center justify-between pt-1 gap-2">
-          {/* Links: Datum */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-            <Calendar className="h-3 w-3" />
-            <span>
-              {bet.event_datetime
-                ? format(new Date(bet.event_datetime), "dd.MM.yy HH:mm", { locale: de })
-                : format(new Date(bet.created_at), "dd.MM.yy", { locale: de })}
-            </span>
+        {/* ── Footer ── */}
+        <div className="flex flex-col gap-1.5 pt-1">
+          {/* Zeile 1: Datum + Votes */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Links: Datum */}
+            <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+              <Calendar className="h-3 w-3" />
+              <span>
+                {bet.event_datetime
+                  ? format(new Date(bet.event_datetime), "dd.MM.yy HH:mm", { locale: de })
+                  : format(new Date(bet.created_at), "dd.MM.yy", { locale: de })}
+              </span>
+            </div>
+
+            {/* Rechts: Votes */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => vote("up")}
+                disabled={!memberName}
+                className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
+                  myVote === "up"
+                    ? "bg-green-500/20 text-green-400"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <ThumbsUp className="h-3.5 w-3.5" />
+                <span className="font-mono">{upvotes}</span>
+              </button>
+
+              <button
+                onClick={() => vote("down")}
+                disabled={!memberName}
+                className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
+                  myVote === "down"
+                    ? "bg-red-500/20 text-red-400"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <ThumbsDown className="h-3.5 w-3.5" />
+                <span className="font-mono">{downvotes}</span>
+              </button>
+            </div>
           </div>
 
-          {/* Rechts: Votes + Status-Buttons */}
-          <div className="flex items-center gap-1.5">
-            {/* Upvote */}
-            <button
-              onClick={() => vote("up")}
-              disabled={!memberName}
-              className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
-                myVote === "up"
-                  ? "bg-green-500/20 text-green-400"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <ThumbsUp className="h-3.5 w-3.5" />
-              <span className="font-mono">{upvotes}</span>
-            </button>
+          {/* Zeile 2: Status-Buttons */}
+          {!isAction && status === "pending" && (
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="xs"
+                variant="ghost"
+                disabled={isUpdating}
+                onClick={() => updateStatus("won")}
+                className="flex-1 h-7 px-2 text-xs text-green-400 hover:text-green-300 hover:bg-green-500/10 gap-1 border border-green-500/20"
+              >
+                <Check className="h-3 w-3" />
+                Gewonnen
+              </Button>
+              <Button
+                size="xs"
+                variant="ghost"
+                disabled={isUpdating}
+                onClick={() => updateStatus("lost")}
+                className="flex-1 h-7 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 gap-1 border border-red-500/20"
+              >
+                <X className="h-3 w-3" />
+                Verloren
+              </Button>
+            </div>
+          )}
 
-            {/* Downvote */}
-            <button
-              onClick={() => vote("down")}
-              disabled={!memberName}
-              className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
-                myVote === "down"
-                  ? "bg-red-500/20 text-red-400"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <ThumbsDown className="h-3.5 w-3.5" />
-              <span className="font-mono">{downvotes}</span>
-            </button>
-
-            {/* Status-Buttons (nur bei Wetten, nicht bei reinen Aktionen) */}
-            {!isAction && status === "pending" && (
-              <>
-                <div className="w-px h-4 bg-border mx-0.5" />
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  disabled={isUpdating}
-                  onClick={() => updateStatus("won")}
-                  className="h-7 px-2 text-xs text-green-400 hover:text-green-300 hover:bg-green-500/10 gap-1"
-                >
-                  <Check className="h-3 w-3" />
-                  Gewonnen
-                </Button>
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  disabled={isUpdating}
-                  onClick={() => updateStatus("lost")}
-                  className="h-7 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 gap-1"
-                >
-                  <X className="h-3 w-3" />
-                  Verloren
-                </Button>
-              </>
-            )}
-
-            {!isAction && status !== "pending" && (
-              <>
-                <div className="w-px h-4 bg-border mx-0.5" />
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  disabled={isUpdating}
-                  onClick={() => updateStatus("pending")}
-                  className="h-7 px-2 text-xs text-muted-foreground gap-1"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                  Reset
-                </Button>
-              </>
-            )}
-          </div>
+          {!isAction && status !== "pending" && (
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="xs"
+                variant="ghost"
+                disabled={isUpdating}
+                onClick={() => updateStatus("pending")}
+                className="h-7 px-2 text-xs text-muted-foreground gap-1"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Reset
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
