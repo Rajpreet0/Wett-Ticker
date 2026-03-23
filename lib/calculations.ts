@@ -7,10 +7,10 @@ export function calculatePotentialPayout(stake: number, odds: number): number {
 export function calculateNetProfit(bets: Bet[]): number {
   const wonPayout = bets
     .filter((b) => b.status === "won")
-    .reduce((sum, b) => sum + b.potential_payout, 0)
+    .reduce((sum, b) => sum + (b.potential_payout ?? 0), 0)
   const totalStaked = bets
     .filter((b) => b.status !== "pending")
-    .reduce((sum, b) => sum + b.stake, 0)
+    .reduce((sum, b) => sum + (b.stake ?? 0), 0)
   return wonPayout - totalStaked
 }
 
@@ -150,15 +150,15 @@ export function computeMemberStats(bets: Bet[]): MemberStats[] {
     const pending = memberBets.filter((b) => b.status === "pending").length
     const settled = won + lost
     const win_rate = settled > 0 ? (won / settled) * 100 : 0
-    const total_staked = memberBets.reduce((sum, b) => sum + b.stake, 0)
+    const total_staked = memberBets.reduce((sum, b) => sum + (b.stake ?? 0), 0)
     const total_payout = memberBets
       .filter((b) => b.status === "won")
-      .reduce((sum, b) => sum + b.potential_payout, 0)
+      .reduce((sum, b) => sum + (b.potential_payout ?? 0), 0)
     const net_profit =
       total_payout -
       memberBets
         .filter((b) => b.status !== "pending")
-        .reduce((sum, b) => sum + b.stake, 0)
+        .reduce((sum, b) => sum + (b.stake ?? 0), 0)
 
     return {
       member_name,

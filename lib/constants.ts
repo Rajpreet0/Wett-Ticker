@@ -43,6 +43,7 @@ export const MEMBERS = [
 export const CATEGORIES = [
   { value: "sport", label: "Sport-Wette", Icon: Trophy },
   { value: "casino", label: "Casino", Icon: Dices },
+  { value: "action", label: "Aktion / Info", Icon: Sparkles },
 ] as const
 
 export type Category = (typeof CATEGORIES)[number]["value"]

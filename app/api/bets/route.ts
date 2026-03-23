@@ -5,16 +5,17 @@ import { sendPushToAll } from "@/lib/push-notifications"
 
 const betSchema = z.object({
   member_name: z.string().min(1),
-  category: z.enum(["sport", "casino"]).default("sport"),
-  sport: z.string().min(1),
+  category: z.enum(["sport", "casino", "action"]).default("sport"),
+  sport: z.string().default(""),
   match_name: z.string().min(1),
   provider: z.string().min(1),
-  bet_type: z.string().min(1),
+  bet_type: z.string().default(""),
   action_type: z.string().default(""),
-  odds: z.number().min(1.01),
-  stake: z.number().min(0.01),
+  odds: z.number().min(1.01).nullable().optional(),
+  odds_against: z.number().min(1.01).nullable().optional(),
+  stake: z.number().min(0.01).nullable().optional(),
   tip: z.string().min(1),
-  event_datetime: z.string().min(1),
+  event_datetime: z.string().nullable().optional(),
 })
 
 export async function GET() {
@@ -37,15 +38,21 @@ export async function POST(request: NextRequest) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.flatten() },
+      { error: parsed.error.issues },
       { status: 400 }
     )
+  }
+
+  // Reine Aktionen bekommen status "info" statt "pending"
+  const insertData = {
+    ...parsed.data,
+    status: parsed.data.category === "action" ? "info" : "pending",
   }
 
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("bets")
-    .insert(parsed.data)
+    .insert(insertData)
     .select()
     .single()
 
@@ -53,12 +60,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Fire push notifications (non-blocking)
-  const emoji = parsed.data.category === "casino" ? "🎰" : "⚽"
-  const actionLabel = parsed.data.action_type ? ` · ${parsed.data.action_type}` : ""
+  // Push notification
+  const categoryLabel =
+    parsed.data.category === "casino"
+      ? "Casino"
+      : parsed.data.category === "action"
+      ? "Aktion"
+      : "Sport"
+  const oddsText =
+    parsed.data.odds != null ? ` @ ${parsed.data.odds}` : ""
   sendPushToAll({
-    title: `${emoji} Neue Aktion von ${parsed.data.member_name}!`,
-    body: `${parsed.data.match_name} @ ${parsed.data.odds} (${parsed.data.provider}${actionLabel})`,
+    title: `Neue ${categoryLabel} von ${parsed.data.member_name}`,
+    body: `${parsed.data.match_name}${oddsText} (${parsed.data.provider})`,
     url: "/",
   }).catch(console.error)
 

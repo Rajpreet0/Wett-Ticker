@@ -19,6 +19,7 @@ import {
   Star,
   BarChart2,
   Euro,
+  Sparkles,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -54,32 +55,53 @@ import {
   assessFairValue,
 } from "@/lib/calculations"
 
-const formSchema = z.object({
-  member_name: z.string().min(1, "Bitte wähle deinen Namen"),
-  category: z.enum(["sport", "casino"]),
-  sport: z.string().min(1, "Bitte wähle eine Kategorie"),
-  match_name: z.string().min(2, "Bitte gib das Event / die Aktion ein"),
-  provider: z.string().min(1, "Bitte wähle einen Anbieter"),
-  bet_type: z.string().min(1, "Bitte wähle einen Wett-Typ"),
-  action_type: z.string().min(1, "Bitte wähle eine Aktionsart"),
-  odds: z
-    .string()
-    .min(1, "Quote eingeben")
-    .transform((v) => parseFloat(v))
-    .pipe(z.number().min(1.01, "Quote muss mindestens 1.01 sein")),
-  odds_against: z
-    .string()
-    .optional()
-    .transform((v) => (v && v !== "" ? parseFloat(v) : null))
-    .pipe(z.number().min(1.01).nullable()),
-  stake: z
-    .string()
-    .min(1, "Einsatz eingeben")
-    .transform((v) => parseFloat(v))
-    .pipe(z.number().min(0.01, "Einsatz muss mindestens 0,01 € sein")),
-  tip: z.string().min(1, "Bitte beschreibe die Aktion / deinen Tipp"),
-  event_datetime: z.string().min(1, "Bitte wähle Datum und Uhrzeit"),
-})
+// ── Schema ────────────────────────────────────────────────────────────────────
+
+const formSchema = z
+  .object({
+    member_name: z.string().min(1, "Bitte wähle deinen Namen"),
+    category: z.enum(["sport", "casino", "action"]),
+    sport: z.string().optional(),
+    match_name: z.string().min(2, "Bitte gib das Event / die Aktion ein"),
+    provider: z.string().min(1, "Bitte wähle einen Anbieter"),
+    bet_type: z.string().optional(),
+    action_type: z.string().optional(),
+    odds: z
+      .string()
+      .optional()
+      .transform((v) => (v && v !== "" ? parseFloat(v) : null))
+      .pipe(z.number().min(1.01).nullable()),
+    odds_against: z
+      .string()
+      .optional()
+      .transform((v) => (v && v !== "" ? parseFloat(v) : null))
+      .pipe(z.number().min(1.01).nullable()),
+    stake: z
+      .string()
+      .optional()
+      .transform((v) => (v && v !== "" ? parseFloat(v) : null))
+      .pipe(z.number().min(0.01).nullable()),
+    tip: z.string().min(1, "Bitte beschreibe die Aktion / deinen Tipp"),
+    event_datetime: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.category !== "action") {
+      if (!data.odds) {
+        ctx.addIssue({
+          path: ["odds"],
+          code: "custom",
+          message: "Quote muss mindestens 1.01 sein",
+        })
+      }
+      if (!data.stake) {
+        ctx.addIssue({
+          path: ["stake"],
+          code: "custom",
+          message: "Einsatz eingeben",
+        })
+      }
+    }
+  })
 
 type FormInput = {
   member_name: string
@@ -98,23 +120,23 @@ type FormInput = {
 
 type FormValues = z.output<typeof formSchema>
 
+// ── Fair-Value Styles ─────────────────────────────────────────────────────────
+
 const FAIR_VALUE_STYLES = {
-  great: {
-    bg: "bg-orange-500/10 border-orange-500/20",
-    text: "text-orange-400",
-    Icon: Flame,
-  },
-  fair: {
-    bg: "bg-green-500/10 border-green-500/20",
-    text: "text-green-400",
-    Icon: CheckCircle2,
-  },
-  poor: {
-    bg: "bg-yellow-500/10 border-yellow-500/20",
-    text: "text-yellow-400",
-    Icon: AlertTriangle,
-  },
+  great: { bg: "bg-orange-500/10 border-orange-500/20", text: "text-orange-400", Icon: Flame },
+  fair:  { bg: "bg-green-500/10 border-green-500/20",  text: "text-green-400",  Icon: CheckCircle2 },
+  poor:  { bg: "bg-yellow-500/10 border-yellow-500/20", text: "text-yellow-400", Icon: AlertTriangle },
 }
+
+// ── Kategorie-Config ──────────────────────────────────────────────────────────
+
+const CATEGORY_CONFIG = {
+  sport: { Icon: Trophy, label: "Sport-Wette", color: "text-blue-400" },
+  casino: { Icon: Dices, label: "Casino", color: "text-purple-400" },
+  action: { Icon: Sparkles, label: "Aktion / Info", color: "text-amber-400" },
+} as const
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function BetForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -142,26 +164,38 @@ export function BetForm() {
   const oddsStr = form.watch("odds")
   const oddsAgainstStr = form.watch("odds_against")
   const stakeStr = form.watch("stake")
+
   const odds = parseFloat(oddsStr)
   const oddsAgainst = oddsAgainstStr ? parseFloat(oddsAgainstStr) : null
   const stake = parseFloat(stakeStr)
 
+  const isAction = category === "action"
+  const isSport = category === "sport"
+  const sportList = isSport ? SPORTS : CASINO_GAMES
+  const betTypeList = isSport ? SPORT_BET_TYPES : ACTION_TYPES
+
   const potentialPayout =
-    !isNaN(odds) && !isNaN(stake) && odds > 0 && stake > 0
+    !isAction && !isNaN(odds) && !isNaN(stake) && odds > 0 && stake > 0
       ? calculatePotentialPayout(stake, odds)
       : null
 
   const fairValue =
-    !isNaN(odds) && odds >= 1.01
-      ? assessFairValue(odds, oddsAgainst && !isNaN(oddsAgainst) && oddsAgainst >= 1.01 ? oddsAgainst : null)
+    !isAction && !isNaN(odds) && odds >= 1.01
+      ? assessFairValue(
+          odds,
+          oddsAgainst && !isNaN(oddsAgainst) && oddsAgainst >= 1.01
+            ? oddsAgainst
+            : null
+        )
       : null
 
-  const prevCategory = form.watch("category")
+  // Reset sport/bet_type when category changes
   useEffect(() => {
     form.setValue("sport", "")
     form.setValue("bet_type", "")
-  }, [prevCategory, form])
+  }, [category, form])
 
+  // Restore member name from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("wett-ticker-member")
     if (saved) form.setValue("member_name", saved)
@@ -183,8 +217,8 @@ export function BetForm() {
       }
 
       localStorage.setItem("wett-ticker-member", typedValues.member_name)
-      toast.success("Aktion eingetragen", {
-        description: `${typedValues.match_name} @ ${typedValues.odds} (${typedValues.provider})`,
+      toast.success("Eingetragen!", {
+        description: `${typedValues.match_name}${typedValues.odds ? ` @ ${typedValues.odds}` : ""} (${typedValues.provider})`,
       })
       form.reset()
       form.setValue("member_name", typedValues.member_name)
@@ -198,38 +232,33 @@ export function BetForm() {
     }
   }
 
-  const isSport = category === "sport"
-  const sportList = isSport ? SPORTS : CASINO_GAMES
-  const betTypeList = isSport ? SPORT_BET_TYPES : ACTION_TYPES
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 
-        {/* ── Kategorie Toggle ── */}
+        {/* ── Kategorie (3 Buttons) ── */}
         <FormField
           control={form.control}
           name="category"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Kategorie</FormLabel>
-              <div className="grid grid-cols-2 gap-2">
-                {(["sport", "casino"] as const).map((cat) => {
+              <div className="grid grid-cols-3 gap-2">
+                {(["sport", "casino", "action"] as const).map((cat) => {
+                  const { Icon, label, color } = CATEGORY_CONFIG[cat]
                   const isActive = field.value === cat
-                  const Icon = cat === "sport" ? Trophy : Dices
-                  const label = cat === "sport" ? "Sport-Wette" : "Casino"
                   return (
                     <button
                       key={cat}
                       type="button"
                       onClick={() => field.onChange(cat)}
-                      className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
+                      className={`flex flex-col items-center gap-1.5 rounded-lg border px-2 py-3 text-xs font-medium transition-colors ${
                         isActive
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border bg-muted/30 text-muted-foreground hover:border-border/80"
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className={`h-4 w-4 ${isActive ? "" : color}`} />
                       {label}
                     </button>
                   )
@@ -265,42 +294,44 @@ export function BetForm() {
           )}
         />
 
-        {/* ── Sportart / Casino-Spiel ── */}
-        <FormField
-          control={form.control}
-          name="sport"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center gap-1.5">
-                {isSport
-                  ? <Trophy className="h-3.5 w-3.5" />
-                  : <Dices className="h-3.5 w-3.5" />}
-                {isSport ? "Sportart" : "Casino-Spiel"}
-              </FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder={isSport ? "Sportart wählen…" : "Spiel wählen…"} />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="min-w-(--radix-select-trigger-width)">
-                  {sportList.map((s) => {
-                    const Icon = s.Icon
-                    return (
-                      <SelectItem key={s.value} value={s.value}>
-                        <span className="flex items-center gap-2">
-                          <Icon className="h-3.5 w-3.5 shrink-0" />
-                          {s.label}
-                        </span>
-                      </SelectItem>
-                    )
-                  })}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* ── Sportart / Casino-Spiel (nicht bei reiner Aktion) ── */}
+        {!isAction && (
+          <FormField
+            control={form.control}
+            name="sport"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-1.5">
+                  {isSport
+                    ? <Trophy className="h-3.5 w-3.5" />
+                    : <Dices className="h-3.5 w-3.5" />}
+                  {isSport ? "Sportart" : "Casino-Spiel"}
+                </FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isSport ? "Sportart wählen…" : "Spiel wählen…"} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="min-w-(--radix-select-trigger-width)">
+                    {sportList.map((s) => {
+                      const Icon = s.Icon
+                      return (
+                        <SelectItem key={s.value} value={s.value}>
+                          <span className="flex items-center gap-2">
+                            <Icon className="h-3.5 w-3.5 shrink-0" />
+                            {s.label}
+                          </span>
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         {/* ── Event / Aktion ── */}
         <FormField
@@ -309,13 +340,17 @@ export function BetForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-1.5">
-                <Trophy className="h-3.5 w-3.5" />
-                {isSport ? "Spiel / Event" : "Aktionsname"}
+                {isAction
+                  ? <Sparkles className="h-3.5 w-3.5" />
+                  : <Trophy className="h-3.5 w-3.5" />}
+                {isAction ? "Aktionsname" : isSport ? "Spiel / Event" : "Event / Aktion"}
               </FormLabel>
               <FormControl>
                 <Input
                   placeholder={
-                    isSport
+                    isAction
+                      ? "z.B. 60 Freispiele bei Book of Legacy – Bwin"
+                      : isSport
                       ? "z.B. Bayern München vs Dortmund"
                       : "z.B. 50 Freispiele auf Book of Dead"
                   }
@@ -334,7 +369,7 @@ export function BetForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5" /> Wettanbieter
+                <Building2 className="h-3.5 w-3.5" /> Anbieter
               </FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
@@ -353,57 +388,95 @@ export function BetForm() {
           )}
         />
 
-        {/* ── Wett-Typ & Aktions-Typ ── */}
-        <div className="grid grid-cols-2 gap-3">
-          <FormField
-            control={form.control}
-            name="bet_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <BarChart2 className="h-3.5 w-3.5" />
-                  {isSport ? "Wett-Typ" : "Spielmodus"}
-                </FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Wählen…" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="min-w-xs">
-                    {betTypeList.map((bt) => {
-                      const Icon = bt.Icon
-                      return (
-                        <SelectItem key={bt.value} value={bt.value}>
-                          <span className="flex items-center gap-2">
-                            <Icon className="h-3.5 w-3.5 shrink-0" />
-                            {bt.label}
-                          </span>
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* ── Wett-Typ & Aktions-Typ (nur bei Sport/Casino) ── */}
+        {!isAction && (
+          <div className="grid grid-cols-2 gap-3">
+            <FormField
+              control={form.control}
+              name="bet_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1.5">
+                    <BarChart2 className="h-3.5 w-3.5" />
+                    {isSport ? "Wett-Typ" : "Spielmodus"}
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Wählen…" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="min-w-(--radix-select-trigger-width)">
+                      {betTypeList.map((bt) => {
+                        const Icon = bt.Icon
+                        return (
+                          <SelectItem key={bt.value} value={bt.value}>
+                            <span className="flex items-center gap-2">
+                              <Icon className="h-3.5 w-3.5 shrink-0" />
+                              {bt.label}
+                            </span>
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
+            <FormField
+              control={form.control}
+              name="action_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1.5">
+                    <Star className="h-3.5 w-3.5" /> Aktions-Typ
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Wählen…" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="min-w-(--radix-select-trigger-width)">
+                      {ACTION_TYPES.map((a) => {
+                        const Icon = a.Icon
+                        return (
+                          <SelectItem key={a.value} value={a.value}>
+                            <span className="flex items-center gap-2">
+                              <Icon className="h-3.5 w-3.5 shrink-0" />
+                              {a.label}
+                            </span>
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
+
+        {/* ── Aktions-Typ (nur bei reiner Aktion) ── */}
+        {isAction && (
           <FormField
             control={form.control}
             name="action_type"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-1.5">
-                  <Star className="h-3.5 w-3.5" /> Aktions-Typ
+                  <Star className="h-3.5 w-3.5" /> Art der Aktion
                 </FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Wählen…" />
+                      <SelectValue placeholder="Aktionsart wählen…" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="min-w-xs">
+                  <SelectContent className="min-w-(--radix-select-trigger-width)">
                     {ACTION_TYPES.map((a) => {
                       const Icon = a.Icon
                       return (
@@ -421,58 +494,60 @@ export function BetForm() {
               </FormItem>
             )}
           />
-        </div>
+        )}
 
-        {/* ── Quote, Gegenquote & Einsatz ── */}
-        <div className="grid grid-cols-3 gap-3">
-          <FormField
-            control={form.control}
-            name="odds"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <TrendingUp className="h-3.5 w-3.5" /> Quote
-                </FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" min="1.01" placeholder="2.40" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="odds_against"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-1.5 text-muted-foreground">
-                  <TrendingUp className="h-3.5 w-3.5" /> Gegenquote
-                </FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" min="1.01" placeholder="Optional" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="stake"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-1.5">
-                  <Euro className="h-3.5 w-3.5" /> Einsatz (€)
-                </FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" min="0.01" placeholder="10.00" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        {/* ── Quote, Gegenquote & Einsatz (nur bei Sport/Casino) ── */}
+        {!isAction && (
+          <div className="grid grid-cols-3 gap-3">
+            <FormField
+              control={form.control}
+              name="odds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1.5">
+                    <TrendingUp className="h-3.5 w-3.5" /> Quote
+                  </FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" min="1.01" placeholder="2.40" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="odds_against"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1.5 text-muted-foreground">
+                    <TrendingUp className="h-3.5 w-3.5" /> Gegenquote
+                  </FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" min="1.01" placeholder="Optional" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="stake"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1.5">
+                    <Euro className="h-3.5 w-3.5" /> Einsatz (€)
+                  </FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" min="0.01" placeholder="10.00" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
 
-        {/* ── Fair-Value / EV Anzeige ── */}
+        {/* ── Fair-Value / EV (nur bei Sport/Casino mit Quote) ── */}
         {fairValue && (
           <div className={`rounded-lg border px-4 py-3 space-y-2 ${FAIR_VALUE_STYLES[fairValue.rating].bg}`}>
             <div className="flex items-center justify-between">
@@ -509,7 +584,7 @@ export function BetForm() {
           </div>
         )}
 
-        {/* ── Gewinn-Vorschau ── */}
+        {/* ── Gewinn-Vorschau (nur bei Sport/Casino) ── */}
         {potentialPayout !== null && (
           <div className="flex items-center justify-between rounded-lg bg-green-500/10 border border-green-500/20 px-4 py-3">
             <span className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -522,7 +597,7 @@ export function BetForm() {
           </div>
         )}
 
-        {/* ── Tipp / Beschreibung ── */}
+        {/* ── Beschreibung / Tipp ── */}
         <FormField
           control={form.control}
           name="tip"
@@ -530,17 +605,19 @@ export function BetForm() {
             <FormItem>
               <FormLabel className="flex items-center gap-1.5">
                 <MessageSquare className="h-3.5 w-3.5" />
-                {isSport ? "Dein Tipp" : "Aktionsbeschreibung"}
+                {isAction ? "Beschreibung" : isSport ? "Dein Tipp" : "Aktionsbeschreibung"}
               </FormLabel>
               <FormControl>
                 <Textarea
                   placeholder={
-                    isSport
+                    isAction
+                      ? "z.B. Einzahlung €100 → 60 Freispiele auf Book of Legacy, kein Mindest-Umsatz!"
+                      : isSport
                       ? "z.B. Bayern gewinnt, Over 2.5 Tore…"
-                      : "z.B. Einzahlung €20, bekomme €20 Freiwette – kein Umsatz nötig!"
+                      : "z.B. Einzahlung €20 → €20 Freiwette, kein Umsatz nötig!"
                   }
                   className="resize-none"
-                  rows={2}
+                  rows={3}
                   {...field}
                 />
               </FormControl>
@@ -549,14 +626,15 @@ export function BetForm() {
           )}
         />
 
-        {/* ── Datum & Uhrzeit ── */}
+        {/* ── Datum & Uhrzeit (optional bei Aktionen) ── */}
         <FormField
           control={form.control}
           name="event_datetime"
           render={({ field }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-1.5">
-                <CalendarDays className="h-3.5 w-3.5" /> Datum & Uhrzeit
+                <CalendarDays className="h-3.5 w-3.5" />
+                {isAction ? "Gültig bis (optional)" : "Datum & Uhrzeit"}
               </FormLabel>
               <FormControl>
                 <Input type="datetime-local" {...field} />
@@ -568,7 +646,11 @@ export function BetForm() {
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           <Zap className="h-4 w-4 mr-2" />
-          {isSubmitting ? "Wird eingetragen…" : "Aktion teilen"}
+          {isSubmitting
+            ? "Wird geteilt…"
+            : isAction
+            ? "Aktion teilen"
+            : "Tipp teilen"}
         </Button>
       </form>
     </Form>

@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, Clock } from "lucide-react"
+import { CheckCircle2, XCircle, Clock, Sparkles } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { Bet } from "@/lib/types"
 
@@ -20,6 +20,14 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       <Badge className="bg-red-500/20 text-red-400 border-red-500/30 gap-1">
         <XCircle className="h-3 w-3" />
         Verloren
+      </Badge>
+    )
+  }
+  if (status === "info") {
+    return (
+      <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 gap-1">
+        <Sparkles className="h-3 w-3" />
+        Aktion
       </Badge>
     )
   }

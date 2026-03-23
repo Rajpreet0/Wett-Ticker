@@ -1,19 +1,24 @@
+export type PostCategory = "sport" | "casino" | "action"
+
 export interface Bet {
   id: string
   created_at: string
   member_name: string
-  category: "sport" | "casino"
-  sport: string           // Sportart (bei sport) oder Casino-Spiel (bei casino)
+  category: PostCategory
+  sport: string           // Sportart / Casino-Spiel / leer bei reiner Aktion
   match_name: string      // Spiel / Event / Aktionsname
   provider: string
-  bet_type: string        // Wett-Typ (sport) oder Aktions-Typ (casino/aktion)
+  bet_type: string        // Wett-Typ (sport) oder Aktions-Typ (casino/action)
   action_type: string     // Anbieter-Aktion: Freiwette, Boost, etc.
-  odds: number
-  stake: number
+  odds: number | null     // null bei reinen Aktionen ohne Quote
+  odds_against: number | null
+  stake: number | null    // null bei reinen Aktionen ohne Einsatz
   tip: string
-  event_datetime: string
-  status: "pending" | "won" | "lost"
-  potential_payout: number
+  event_datetime: string | null
+  status: "pending" | "won" | "lost" | "info"  // info = reine Aktion ohne Wettstatus
+  potential_payout: number | null
+  upvotes: number
+  downvotes: number
 }
 
 export interface MemberStats {
