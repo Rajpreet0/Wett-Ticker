@@ -122,6 +122,58 @@ export function assessFairValue(
   }
 }
 
+// ─── Satz des Dalhoffs ────────────────────────────────────────────────────────
+
+export type DalhoffRating = "value" | "neutral" | "disadvantage"
+
+export interface DalhoffResult {
+  margin: number          // (sum 1/Qi) * taxFactor - 1
+  marginPercent: number
+  rating: DalhoffRating
+  label: string
+  description: string
+}
+
+/**
+ * Satz des Dalhoffs:
+ *   margin = (1/Q1 + 1/Q2 + ... + 1/Qn) * taxFactor − 1
+ *
+ *   < 0  → Spieler-Vorteil (Value Bet!)
+ *   = 0  → Fairer Markt
+ *   > 0  → Buchmacher-Vorteil
+ *
+ * Alle Quoten des Marktes übergeben (z. B. Sieg + Unentschieden + Niederlage).
+ * taxFactor: z. B. 1.05 für 5 % Steuer.
+ */
+export function calculateDalhoff(
+  quotes: number[],
+  taxFactor = 1.0
+): DalhoffResult {
+  const sumInverse = quotes.reduce((sum, q) => sum + 1 / q, 0)
+  const margin = sumInverse * taxFactor - 1
+  const marginPercent = margin * 100
+
+  let rating: DalhoffRating
+  let label: string
+  let description: string
+
+  if (margin < -0.01) {
+    rating = "value"
+    label = "Value Bet!"
+    description = `Spielervorteil: ${marginPercent.toFixed(2)} % — mathematischer Vorteil`
+  } else if (margin <= 0.03) {
+    rating = "neutral"
+    label = "Fairer Markt"
+    description = `Marge: ${marginPercent.toFixed(2)} % — nahe am fairen Wert`
+  } else {
+    rating = "disadvantage"
+    label = "Buchmacher-Vorteil"
+    description = `Marge: ${marginPercent.toFixed(2)} % — Buchmacher hat den Vorteil`
+  }
+
+  return { margin, marginPercent, rating, label, description }
+}
+
 // ─── Formatierung ─────────────────────────────────────────────────────────────
 
 export function formatCurrency(amount: number): string {

@@ -12,10 +12,15 @@ const betSchema = z.object({
   bet_type: z.string().default(""),
   action_type: z.string().default(""),
   odds: z.number().min(1.01).nullable().optional(),
+  odds_draw: z.number().min(1.01).nullable().optional(),
   odds_against: z.number().min(1.01).nullable().optional(),
   stake: z.number().min(0.01).nullable().optional(),
   tip: z.string().min(1),
-  event_datetime: z.string().nullable().optional(),
+  event_datetime: z.string().optional().transform((v) => v === "" ? null : (v ?? null)),
+  action_start_date: z.string().optional().transform((v) => v === "" ? null : (v ?? null)),
+  action_end_date: z.string().optional().transform((v) => v === "" ? null : (v ?? null)),
+  action_montags_only: z.boolean().nullable().optional(),
+  action_weekdays: z.string().optional().transform((v) => v === "" ? null : (v ?? null)),
 })
 
 export async function GET() {

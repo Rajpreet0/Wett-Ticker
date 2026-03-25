@@ -16,6 +16,7 @@ export function useBets() {
       const { data, error } = await supabase
         .from("bets")
         .select("*")
+        .neq("category", "action")
         .order("created_at", { ascending: false })
 
       if (error) {
@@ -60,6 +61,7 @@ export function useBets() {
     const { data, error } = await supabase
       .from("bets")
       .select("*")
+      .neq("category", "action")
       .order("created_at", { ascending: false })
     if (!error && data) setBets(data as Bet[])
   }
