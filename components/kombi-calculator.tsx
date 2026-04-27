@@ -82,48 +82,60 @@ function EVSection() {
 
       <div>
         <p className="text-xs text-muted-foreground mb-2">Vergleichs-Anbieter (gleiche Wette)</p>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {bookmakers.map((b, idx) => {
             const q = parseFloat(b.quote.replace(",", "."))
             const or = parseFloat(b.overround.replace(",", "."))
             const quoteValid = !isNaN(q) && q >= 1.01
             const overroundValid = !isNaN(or) && or >= 1
             return (
-              <div key={b.id} className="flex items-center gap-2">
-                <span className="shrink-0 w-5 h-5 rounded-full bg-muted/60 flex items-center justify-center text-[10px] font-bold text-muted-foreground">
-                  {idx + 1}
-                </span>
-                <input
-                  value={b.name}
-                  onChange={(e) => updateBookmaker(b.id, "name", e.target.value)}
-                  placeholder="Anbieter"
-                  className="flex-1 text-xs bg-muted/40 border border-border/40 rounded-full px-3 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground"
-                />
-                <input
-                  value={b.quote}
-                  onChange={(e) => updateBookmaker(b.id, "quote", e.target.value)}
-                  placeholder="Quote"
-                  inputMode="decimal"
-                  className={`w-18 text-xs font-mono bg-muted/40 border rounded-full px-2 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center ${
-                    quoteValid ? "border-green-500/30 text-green-400" : "border-border/40"
-                  }`}
-                />
-                <input
-                  value={b.overround}
-                  onChange={(e) => updateBookmaker(b.id, "overround", e.target.value)}
-                  placeholder="Overr."
-                  inputMode="decimal"
-                  className={`w-18 text-xs font-mono bg-muted/40 border rounded-full px-2 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center ${
-                    overroundValid ? "border-blue-500/30 text-blue-400" : "border-border/40"
-                  }`}
-                />
-                <button
-                  onClick={() => removeBookmaker(b.id)}
-                  disabled={bookmakers.length <= 1}
-                  className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-30"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+              <div key={b.id} className="space-y-1.5">
+                {/* Row 1: badge + name + delete */}
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-muted/60 flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                    {idx + 1}
+                  </span>
+                  <input
+                    value={b.name}
+                    onChange={(e) => updateBookmaker(b.id, "name", e.target.value)}
+                    placeholder="Anbieter"
+                    className="flex-1 text-xs bg-muted/40 border border-border/40 rounded-full px-3 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground"
+                  />
+                  <button
+                    onClick={() => removeBookmaker(b.id)}
+                    disabled={bookmakers.length <= 1}
+                    className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-30"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                {/* Row 2: quote + overround */}
+                <div className="flex items-center gap-2 pl-7">
+                  <div className="flex-1 flex flex-col gap-0.5">
+                    <span className="text-[9px] text-muted-foreground pl-2">Quote</span>
+                    <input
+                      value={b.quote}
+                      onChange={(e) => updateBookmaker(b.id, "quote", e.target.value)}
+                      placeholder="z.B. 3.20"
+                      inputMode="decimal"
+                      className={`w-full text-xs font-mono bg-muted/40 border rounded-full px-3 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center ${
+                        quoteValid ? "border-green-500/30 text-green-400" : "border-border/40"
+                      }`}
+                    />
+                  </div>
+                  <div className="flex-1 flex flex-col gap-0.5">
+                    <span className="text-[9px] text-muted-foreground pl-2">Overround</span>
+                    <input
+                      value={b.overround}
+                      onChange={(e) => updateBookmaker(b.id, "overround", e.target.value)}
+                      placeholder="z.B. 1.10"
+                      inputMode="decimal"
+                      className={`w-full text-xs font-mono bg-muted/40 border rounded-full px-3 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center ${
+                        overroundValid ? "border-blue-500/30 text-blue-400" : "border-border/40"
+                      }`}
+                    />
+                  </div>
+                </div>
               </div>
             )
           })}
@@ -141,22 +153,22 @@ function EVSection() {
       {ev != null && realProb != null && (
         <Card className="rounded-2xl border-border/40 bg-muted/20">
           <CardContent className="p-4 space-y-3">
-            <div className="bg-muted/30 rounded-xl overflow-hidden">
-              <table className="w-full text-xs">
+            <div className="bg-muted/30 rounded-xl overflow-x-auto">
+              <table className="w-full text-xs min-w-70">
                 <thead>
                   <tr className="border-b border-border/30">
                     <th className="text-left px-3 py-1.5 text-muted-foreground font-medium">Anbieter</th>
                     <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">Quote</th>
-                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">Overround</th>
+                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">Overr.</th>
                     <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">faire p</th>
                   </tr>
                 </thead>
                 <tbody>
                   {fairProbs.map((b, i) => (
                     <tr key={i} className="border-b border-border/20 last:border-0">
-                      <td className="px-3 py-1.5 truncate max-w-17.5">{b.name || `Anbieter ${i + 1}`}</td>
+                      <td className="px-3 py-1.5 truncate max-w-20">{b.name || `A${i + 1}`}</td>
                       <td className="px-3 py-1.5 text-right font-mono">{b.q.toFixed(2)}</td>
-                      <td className="px-3 py-1.5 text-right font-mono">{b.or.toFixed(4)}</td>
+                      <td className="px-3 py-1.5 text-right font-mono">{b.or.toFixed(3)}</td>
                       <td className="px-3 py-1.5 text-right font-mono text-muted-foreground">
                         {(b.p * 100).toFixed(2)}%
                       </td>
@@ -270,22 +282,15 @@ function DalhoffSection() {
                 placeholder={`Ausgang ${idx + 1}`}
                 className="flex-1 text-xs bg-muted/40 border border-border/40 rounded-full px-3 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground"
               />
-              <div className="relative shrink-0 w-24">
-                <input
-                  value={o.quote}
-                  onChange={(e) => updateOutcome(o.id, "quote", e.target.value)}
-                  placeholder="Quote"
-                  inputMode="decimal"
-                  className={`w-full text-xs font-mono bg-muted/40 border rounded-full px-2.5 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center ${
-                    valid ? "border-green-500/30 text-green-400" : "border-border/40"
-                  }`}
-                />
-                {valid && (
-                  <span className="absolute -bottom-3.5 left-0 right-0 text-[9px] text-center text-muted-foreground">
-                    {((1 / q) * 100).toFixed(1)}%
-                  </span>
-                )}
-              </div>
+              <input
+                value={o.quote}
+                onChange={(e) => updateOutcome(o.id, "quote", e.target.value)}
+                placeholder="Quote"
+                inputMode="decimal"
+                className={`shrink-0 w-16 text-xs font-mono bg-muted/40 border rounded-full px-2 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center ${
+                  valid ? "border-green-500/30 text-green-400" : "border-border/40"
+                }`}
+              />
               <button
                 onClick={() => removeOutcome(o.id)}
                 disabled={outcomes.length <= 2}
@@ -310,20 +315,20 @@ function DalhoffSection() {
       {overround != null && margin != null && (
         <Card className="rounded-2xl border-border/40 bg-muted/20">
           <CardContent className="p-4 space-y-3">
-            <div className="bg-muted/30 rounded-xl overflow-hidden">
-              <table className="w-full text-xs">
+            <div className="bg-muted/30 rounded-xl overflow-x-auto">
+              <table className="w-full text-xs min-w-70">
                 <thead>
                   <tr className="border-b border-border/30">
                     <th className="text-left px-3 py-1.5 text-muted-foreground font-medium">Ausgang</th>
                     <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">Quote</th>
                     <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">1 / Q</th>
-                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">impl. WS</th>
+                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">WS%</th>
                   </tr>
                 </thead>
                 <tbody>
                   {parsed.map((o, i) => (
                     <tr key={i} className="border-b border-border/20 last:border-0">
-                      <td className="px-3 py-1.5 truncate max-w-17.5">{o.label || `Ausgang ${i + 1}`}</td>
+                      <td className="px-3 py-1.5 truncate max-w-20">{o.label || `A${i + 1}`}</td>
                       <td className="px-3 py-1.5 text-right font-mono">{o.q.toFixed(2)}</td>
                       <td className="px-3 py-1.5 text-right font-mono text-muted-foreground">
                         {(1 / o.q).toFixed(4)}
