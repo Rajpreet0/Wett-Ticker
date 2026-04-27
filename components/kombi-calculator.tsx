@@ -1,289 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Trash2, TrendingUp, Euro, Calculator, Flame, CheckCircle2, AlertTriangle, Info } from "lucide-react"
+import { Plus, Trash2, TrendingUp, Info } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
-import { formatCurrency, calculateDalhoff } from "@/lib/calculations"
 
-// ── Kombi Calculator ──────────────────────────────────────────────────────────
-
-interface Leg { id: string; label: string; odds: string }
 function uid() { return Math.random().toString(36).slice(2) }
-
-function KombiSection() {
-  const [legs, setLegs] = useState<Leg[]>([
-    { id: uid(), label: "", odds: "" },
-    { id: uid(), label: "", odds: "" },
-  ])
-  const [stake, setStake] = useState("")
-
-  function addLeg() { if (legs.length < 10) setLegs((p) => [...p, { id: uid(), label: "", odds: "" }]) }
-  function removeLeg(id: string) { if (legs.length > 1) setLegs((p) => p.filter((l) => l.id !== id)) }
-  function updateLeg(id: string, f: "label" | "odds", v: string) {
-    setLegs((p) => p.map((l) => (l.id === id ? { ...l, [f]: v } : l)))
-  }
-
-  const parsed = legs.map((l) => ({ ...l, num: parseFloat(l.odds.replace(",", ".")) }))
-  const valid  = parsed.filter((l) => !isNaN(l.num) && l.num >= 1.01)
-  const combined   = valid.length > 0 ? valid.reduce((p, l) => p * l.num, 1) : null
-  const parsedStake = parseFloat(stake.replace(",", "."))
-  const payout = combined != null && !isNaN(parsedStake) && parsedStake > 0 ? parsedStake * combined : null
-  const profit = payout != null ? payout - parsedStake : null
-  const impliedProb = valid.length > 0 ? valid.reduce((p, l) => p * (1 / l.num), 1) * 100 : null
-
-  return (
-    <div className="space-y-3">
-      <div className="space-y-2.5">
-        {legs.map((leg, idx) => {
-          const num = parseFloat(leg.odds.replace(",", "."))
-          const isValid = !isNaN(num) && num >= 1.01
-          const implP = isValid ? (1 / num) * 100 : null
-          return (
-            <div key={leg.id} className="flex items-center gap-2">
-              <span className="shrink-0 w-5 h-5 rounded-full bg-muted/60 flex items-center justify-center text-[10px] font-bold text-muted-foreground">
-                {idx + 1}
-              </span>
-              <input
-                value={leg.label}
-                onChange={(e) => updateLeg(leg.id, "label", e.target.value)}
-                placeholder={`Tipp ${idx + 1}`}
-                className="flex-1 text-xs bg-muted/40 border border-border/40 rounded-full px-3 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground"
-              />
-              <div className="relative shrink-0 w-20">
-                <input
-                  value={leg.odds}
-                  onChange={(e) => updateLeg(leg.id, "odds", e.target.value)}
-                  placeholder="Quote"
-                  inputMode="decimal"
-                  className={`w-full text-xs font-mono bg-muted/40 border rounded-full px-2.5 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center ${
-                    isValid ? "border-green-500/30 text-green-400" : "border-border/40"
-                  }`}
-                />
-                {isValid && implP != null && (
-                  <span className="absolute -bottom-3.5 left-0 right-0 text-[9px] text-center text-muted-foreground">
-                    {implP.toFixed(1)}%
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => removeLeg(leg.id)}
-                disabled={legs.length <= 1}
-                className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-30"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )
-        })}
-      </div>
-
-      <button
-        onClick={addLeg}
-        disabled={legs.length >= 10}
-        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 ml-7 mt-4"
-      >
-        <Plus className="h-3.5 w-3.5" />
-        Tipp hinzufügen ({legs.length}/10)
-      </button>
-
-      <div className="flex items-center gap-3">
-        <label className="text-xs text-muted-foreground shrink-0 flex items-center gap-1.5">
-          <Euro className="h-3.5 w-3.5" /> Einsatz
-        </label>
-        <input
-          value={stake}
-          onChange={(e) => setStake(e.target.value)}
-          placeholder="0.00"
-          inputMode="decimal"
-          className="flex-1 text-sm font-mono bg-muted/40 border border-border/40 rounded-full px-3 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground"
-        />
-      </div>
-
-      {valid.length >= 2 && (
-        <Card className="rounded-2xl border-border/40 bg-muted/20">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <TrendingUp className="h-3.5 w-3.5" /> Kombi-Quote
-              </span>
-              <span className="font-mono font-bold text-lg">{combined!.toFixed(2)}</span>
-            </div>
-            {payout != null && (
-              <div className="flex items-center justify-between rounded-xl bg-green-500/8 border border-green-500/15 px-3 py-2">
-                <span className="text-xs text-muted-foreground">Möglicher Gewinn</span>
-                <span className="font-mono font-bold text-green-400">{formatCurrency(payout)}</span>
-              </div>
-            )}
-            {profit != null && (
-              <div className="flex items-center justify-between px-1">
-                <span className="text-xs text-muted-foreground">Reingewinn</span>
-                <span className={`font-mono text-sm font-semibold ${profit >= 0 ? "text-green-400" : "text-red-400"}`}>
-                  {profit >= 0 ? "+" : ""}{formatCurrency(profit)}
-                </span>
-              </div>
-            )}
-            {impliedProb != null && (
-              <div className="flex items-center justify-between px-1">
-                <span className="text-xs text-muted-foreground">Kombi-Wahrscheinlichkeit</span>
-                <span className="font-mono text-xs text-muted-foreground">{impliedProb.toFixed(2)}%</span>
-              </div>
-            )}
-            <div className="bg-muted/30 rounded-xl overflow-hidden mt-1">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-border/30">
-                    <th className="text-left px-3 py-1.5 text-muted-foreground font-medium">#</th>
-                    <th className="text-left px-3 py-1.5 text-muted-foreground font-medium">Tipp</th>
-                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">Quote</th>
-                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">WS%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {valid.map((leg, idx) => (
-                    <tr key={leg.id} className="border-b border-border/20 last:border-0">
-                      <td className="px-3 py-1.5 text-muted-foreground">{idx + 1}</td>
-                      <td className="px-3 py-1.5 truncate max-w-[100px]">{leg.label || `Tipp ${idx + 1}`}</td>
-                      <td className="px-3 py-1.5 text-right font-mono font-semibold">{leg.num.toFixed(2)}</td>
-                      <td className="px-3 py-1.5 text-right font-mono text-muted-foreground">
-                        {((1 / leg.num) * 100).toFixed(1)}%
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <ExplanationBox
-        title="Was ist eine Kombi-Wette?"
-        text="Du multiplizierst alle Quoten miteinander. Jeder Tipp muss gewinnen — daher sinkt die Wahrscheinlichkeit stark, aber die Quote steigt stark. Faustformel: Kombi-WS% = Produkt aller impliziten Einzelwahrscheinlichkeiten."
-      />
-    </div>
-  )
-}
-
-// ── Dalhoff Section ───────────────────────────────────────────────────────────
-
-const DALHOFF_CONFIG = {
-  value:        { Icon: Flame,         color: "text-green-400",  bg: "bg-green-500/10 border-green-500/20"   },
-  neutral:      { Icon: CheckCircle2,  color: "text-blue-400",   bg: "bg-blue-500/10 border-blue-500/20"     },
-  disadvantage: { Icon: AlertTriangle, color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20" },
-}
-
-function DalhoffSection() {
-  const [quotes, setQuotes] = useState(["", "", ""])
-
-  const parsed = quotes
-    .map((q) => parseFloat(q.replace(",", ".")))
-    .filter((q) => !isNaN(q) && q >= 1.01)
-
-  const result = parsed.length >= 2 ? calculateDalhoff(parsed) : null
-  const cfg = result ? DALHOFF_CONFIG[result.rating] : null
-
-  return (
-    <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">Mind. 2 Quoten eingeben (z.B. Sieg / Unentschieden / Niederlage)</p>
-      <div className="grid grid-cols-3 gap-2">
-        {(["Sieg / Ja", "Unentschieden", "Niederlage / Nein"] as const).map((label, i) => (
-          <div key={i}>
-            <p className="text-[10px] text-muted-foreground mb-1">{label}</p>
-            <input
-              value={quotes[i]}
-              onChange={(e) => setQuotes((p) => { const n = [...p]; n[i] = e.target.value; return n })}
-              placeholder="1.80"
-              inputMode="decimal"
-              className="w-full text-sm font-mono bg-muted/40 border border-border/40 rounded-full px-3 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center"
-            />
-          </div>
-        ))}
-      </div>
-
-      {result && cfg && (
-        <div className={`rounded-xl border px-4 py-3 space-y-2 ${cfg.bg}`}>
-          <div className="flex items-center justify-between">
-            <span className={`flex items-center gap-2 text-sm font-semibold ${cfg.color}`}>
-              <cfg.Icon className="h-4 w-4" />
-              {result.label}
-            </span>
-            <span className={`font-mono font-bold ${cfg.color}`}>
-              {result.margin >= 0 ? "+" : ""}{result.marginPercent.toFixed(2)}%
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">{result.description}</p>
-          <div className="flex gap-2 flex-wrap pt-1">
-            {parsed.map((q, i) => (
-              <span key={i} className="text-[11px] bg-black/20 rounded-full px-2.5 py-0.5 font-mono">
-                {q.toFixed(2)} → {((1 / q) * 100).toFixed(1)}%
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <ExplanationBox
-        title="Satz des Dalhoffs (Buchmacher-Marge)"
-        text={`Formel: (1/Q₁ + 1/Q₂ + … + 1/Qₙ) − 1\n\nNegativ = du hast einen Vorteil (Value Bet). Positiv = Buchmacher hat einen Vorteil (Normalfall). Je höher der Wert, desto mehr verdient der Buchmacher langfristig an dir.`}
-      />
-    </div>
-  )
-}
-
-// ── Implied Probability Section ───────────────────────────────────────────────
-
-function ProbSection() {
-  const [oddsInput, setOddsInput] = useState("")
-  const num = parseFloat(oddsInput.replace(",", "."))
-  const isValid = !isNaN(num) && num >= 1.01
-  const impliedProb = isValid ? (1 / num) * 100 : null
-  const fairOdds    = isValid ? (1 / (impliedProb! / 100)) : null
-
-  return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-xs text-muted-foreground mb-2">Buchmacher-Quote eingeben</p>
-        <input
-          value={oddsInput}
-          onChange={(e) => setOddsInput(e.target.value)}
-          placeholder="2.50"
-          inputMode="decimal"
-          className="w-full text-xl font-mono bg-muted/40 border border-border/40 rounded-2xl px-4 py-3 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center"
-        />
-      </div>
-
-      {isValid && impliedProb != null && (
-        <Card className="rounded-2xl border-border/40 bg-muted/20">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Implizite Wahrscheinlichkeit</span>
-              <span className="font-mono font-bold text-2xl text-primary">{impliedProb.toFixed(1)}%</span>
-            </div>
-            <div className="w-full bg-muted/50 rounded-full h-1.5">
-              <div
-                className="bg-primary h-1.5 rounded-full transition-all"
-                style={{ width: `${Math.min(impliedProb, 100)}%` }}
-              />
-            </div>
-            {fairOdds != null && (
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Faire Quote (ohne Marge)</span>
-                <span className="font-mono text-foreground/80">{fairOdds.toFixed(2)}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      <ExplanationBox
-        title="Implizite Wahrscheinlichkeit"
-        text={`Formel: 1 / Quote × 100\n\nEine Quote von 2.00 entspricht 50% impliziter Wahrscheinlichkeit. Der Buchmacher baut eine Marge ein, sodass die Summe aller Wahrscheinlichkeiten eines Spiels über 100% liegt — das ist sein Gewinn.`}
-      />
-    </div>
-  )
-}
-
-// ── Shared Explanation Box ────────────────────────────────────────────────────
 
 function ExplanationBox({ title, text }: { title: string; text: string }) {
   const [open, setOpen] = useState(false)
@@ -305,24 +26,363 @@ function ExplanationBox({ title, text }: { title: string; text: string }) {
   )
 }
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// ── EV Calculator ─────────────────────────────────────────────────────────────
 
-type Tab = "kombi" | "dalhoff" | "prob"
+interface BookmakerEntry { id: string; name: string; quote: string; overround: string }
 
-const TABS: { id: Tab; label: string; icon: typeof Calculator }[] = [
-  { id: "kombi",   label: "Kombi",         icon: Calculator },
-  { id: "dalhoff", label: "Dalhoff-Marge", icon: TrendingUp },
-  { id: "prob",    label: "Wahrscheinlichkeit", icon: TrendingUp },
-]
+function EVSection() {
+  const [myQuote, setMyQuote] = useState("")
+  const [bookmakers, setBookmakers] = useState<BookmakerEntry[]>([
+    { id: uid(), name: "", quote: "", overround: "" },
+    { id: uid(), name: "", quote: "", overround: "" },
+  ])
 
-export function KombiCalculator() {
-  const [tab, setTab] = useState<Tab>("kombi")
+  function addBookmaker() {
+    if (bookmakers.length < 8)
+      setBookmakers((p) => [...p, { id: uid(), name: "", quote: "", overround: "" }])
+  }
+  function removeBookmaker(id: string) {
+    if (bookmakers.length > 1) setBookmakers((p) => p.filter((b) => b.id !== id))
+  }
+  function updateBookmaker(id: string, field: keyof Omit<BookmakerEntry, "id">, value: string) {
+    setBookmakers((p) => p.map((b) => (b.id === id ? { ...b, [field]: value } : b)))
+  }
+
+  const parsedMyQuote = parseFloat(myQuote.replace(",", "."))
+  const myQuoteValid = !isNaN(parsedMyQuote) && parsedMyQuote >= 1.01
+
+  const fairProbs = bookmakers
+    .map((b) => ({
+      name: b.name,
+      q: parseFloat(b.quote.replace(",", ".")),
+      or: parseFloat(b.overround.replace(",", ".")),
+    }))
+    .filter((b) => !isNaN(b.q) && b.q >= 1.01 && !isNaN(b.or) && b.or >= 1)
+    .map((b) => ({ ...b, p: 1 / (b.q * b.or) }))
+
+  const realProb =
+    fairProbs.length > 0
+      ? fairProbs.reduce((sum, b) => sum + b.p, 0) / fairProbs.length
+      : null
+
+  const ev = myQuoteValid && realProb != null ? parsedMyQuote * realProb - 1 : null
 
   return (
     <div className="space-y-4">
-      {/* Tab switcher */}
+      <div>
+        <p className="text-xs text-muted-foreground mb-1.5">Deine Quote (zu spielen)</p>
+        <input
+          value={myQuote}
+          onChange={(e) => setMyQuote(e.target.value)}
+          placeholder="z.B. 3.95"
+          inputMode="decimal"
+          className="w-full text-xl font-mono bg-muted/40 border border-border/40 rounded-2xl px-4 py-3 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center"
+        />
+      </div>
+
+      <div>
+        <p className="text-xs text-muted-foreground mb-2">Vergleichs-Anbieter (gleiche Wette)</p>
+        <div className="space-y-2">
+          {bookmakers.map((b, idx) => {
+            const q = parseFloat(b.quote.replace(",", "."))
+            const or = parseFloat(b.overround.replace(",", "."))
+            const quoteValid = !isNaN(q) && q >= 1.01
+            const overroundValid = !isNaN(or) && or >= 1
+            return (
+              <div key={b.id} className="flex items-center gap-2">
+                <span className="shrink-0 w-5 h-5 rounded-full bg-muted/60 flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                  {idx + 1}
+                </span>
+                <input
+                  value={b.name}
+                  onChange={(e) => updateBookmaker(b.id, "name", e.target.value)}
+                  placeholder="Anbieter"
+                  className="flex-1 text-xs bg-muted/40 border border-border/40 rounded-full px-3 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground"
+                />
+                <input
+                  value={b.quote}
+                  onChange={(e) => updateBookmaker(b.id, "quote", e.target.value)}
+                  placeholder="Quote"
+                  inputMode="decimal"
+                  className={`w-18 text-xs font-mono bg-muted/40 border rounded-full px-2 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center ${
+                    quoteValid ? "border-green-500/30 text-green-400" : "border-border/40"
+                  }`}
+                />
+                <input
+                  value={b.overround}
+                  onChange={(e) => updateBookmaker(b.id, "overround", e.target.value)}
+                  placeholder="Overr."
+                  inputMode="decimal"
+                  className={`w-18 text-xs font-mono bg-muted/40 border rounded-full px-2 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center ${
+                    overroundValid ? "border-blue-500/30 text-blue-400" : "border-border/40"
+                  }`}
+                />
+                <button
+                  onClick={() => removeBookmaker(b.id)}
+                  disabled={bookmakers.length <= 1}
+                  className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-30"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+        <button
+          onClick={addBookmaker}
+          disabled={bookmakers.length >= 8}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 ml-7 mt-3"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Anbieter hinzufügen ({bookmakers.length}/8)
+        </button>
+      </div>
+
+      {ev != null && realProb != null && (
+        <Card className="rounded-2xl border-border/40 bg-muted/20">
+          <CardContent className="p-4 space-y-3">
+            <div className="bg-muted/30 rounded-xl overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border/30">
+                    <th className="text-left px-3 py-1.5 text-muted-foreground font-medium">Anbieter</th>
+                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">Quote</th>
+                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">Overround</th>
+                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">faire p</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fairProbs.map((b, i) => (
+                    <tr key={i} className="border-b border-border/20 last:border-0">
+                      <td className="px-3 py-1.5 truncate max-w-17.5">{b.name || `Anbieter ${i + 1}`}</td>
+                      <td className="px-3 py-1.5 text-right font-mono">{b.q.toFixed(2)}</td>
+                      <td className="px-3 py-1.5 text-right font-mono">{b.or.toFixed(4)}</td>
+                      <td className="px-3 py-1.5 text-right font-mono text-muted-foreground">
+                        {(b.p * 100).toFixed(2)}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs text-muted-foreground">Reale Wahrscheinlichkeit (Ø)</span>
+              <span className="font-mono text-sm font-semibold">{(realProb * 100).toFixed(2)}%</span>
+            </div>
+
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs text-muted-foreground">Faire Quote</span>
+              <span className="font-mono text-sm text-muted-foreground">{(1 / realProb).toFixed(2)}</span>
+            </div>
+
+            <div
+              className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${
+                ev > 0 ? "bg-green-500/8 border-green-500/20" : "bg-red-500/8 border-red-500/20"
+              }`}
+            >
+              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <TrendingUp className="h-3.5 w-3.5" /> Expected Value
+              </span>
+              <div className="text-right">
+                <div className={`font-mono font-bold text-lg ${ev > 0 ? "text-green-400" : "text-red-400"}`}>
+                  {ev > 0 ? "+" : ""}{(ev * 100).toFixed(2)}%
+                </div>
+                <div className={`text-xs font-mono ${ev > 0 ? "text-green-400/70" : "text-red-400/70"}`}>
+                  {ev > 0 ? "+" : ""}{ev.toFixed(3)} € pro 1 € Einsatz
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <ExplanationBox
+        title="Wie wird der EV berechnet?"
+        text={`1. Faire Wahrscheinlichkeit pro Anbieter\n   p = 1 / (Quote × Overround)\n\n   Den Overround berechnest du mit dem Dalhoff-Tab.\n   Typisch: 1.05–1.12\n\n2. Reale Wahrscheinlichkeit\n   Durchschnitt aller p-Werte der eingegebenen Anbieter.\n\n3. EV = (Deine Quote × Reale WS) − 1\n\n   Positiv (+EV) → Value Bet, du hast langfristig Vorteil.\n   Negativ (−EV) → kein Value, Buchmacher hat Vorteil.\n\nBeispiel:\n   Anbieter A: Quote 3.20 · Overround 1.1018 → p = 28.36%\n   Anbieter B: Quote 3.40 · Overround 1.0920 → p = 27.20%\n   Reale WS: (28.36 + 27.20) / 2 = 27.78%\n   Faire Quote: 1 / 0.2778 = 3.60\n   Deine Quote: 3.95\n   EV = (3.95 × 0.2778) − 1 = +9.73%`}
+      />
+    </div>
+  )
+}
+
+// ── Overround / Dalhoff ───────────────────────────────────────────────────────
+
+interface OutcomeEntry { id: string; label: string; quote: string }
+
+function DalhoffSection() {
+  const [outcomes, setOutcomes] = useState<OutcomeEntry[]>([
+    { id: uid(), label: "Sieg", quote: "" },
+    { id: uid(), label: "Unentschieden", quote: "" },
+    { id: uid(), label: "Niederlage", quote: "" },
+  ])
+
+  function addOutcome() {
+    if (outcomes.length < 10)
+      setOutcomes((p) => [...p, { id: uid(), label: "", quote: "" }])
+  }
+  function removeOutcome(id: string) {
+    if (outcomes.length > 2) setOutcomes((p) => p.filter((o) => o.id !== id))
+  }
+  function updateOutcome(id: string, field: keyof Omit<OutcomeEntry, "id">, value: string) {
+    setOutcomes((p) => p.map((o) => (o.id === id ? { ...o, [field]: value } : o)))
+  }
+
+  const parsed = outcomes
+    .map((o) => ({ ...o, q: parseFloat(o.quote.replace(",", ".")) }))
+    .filter((o) => !isNaN(o.q) && o.q >= 1.01)
+
+  const overround = parsed.length >= 2 ? parsed.reduce((sum, o) => sum + 1 / o.q, 0) : null
+  const margin = overround != null ? (overround - 1) * 100 : null
+
+  const margenColor =
+    margin == null ? "" :
+    margin < 3 ? "text-green-400" :
+    margin < 7 ? "text-yellow-400" : "text-red-400"
+
+  const margenBg =
+    margin == null ? "" :
+    margin < 3 ? "bg-green-500/8 border-green-500/20" :
+    margin < 7 ? "bg-yellow-500/8 border-yellow-500/20" : "bg-red-500/8 border-red-500/20"
+
+  const margenLabel =
+    margin == null ? "" :
+    margin < 3 ? "Sehr faire Quoten" :
+    margin < 7 ? "Normale Marge" : "Hohe Marge"
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        Alle Quoten eines Spiels bei <span className="font-medium text-foreground">einem</span> Anbieter eingeben (z.B. Sieg / X / Niederlage).
+      </p>
+
+      <div className="space-y-2">
+        {outcomes.map((o, idx) => {
+          const q = parseFloat(o.quote.replace(",", "."))
+          const valid = !isNaN(q) && q >= 1.01
+          return (
+            <div key={o.id} className="flex items-center gap-2">
+              <span className="shrink-0 w-5 h-5 rounded-full bg-muted/60 flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                {idx + 1}
+              </span>
+              <input
+                value={o.label}
+                onChange={(e) => updateOutcome(o.id, "label", e.target.value)}
+                placeholder={`Ausgang ${idx + 1}`}
+                className="flex-1 text-xs bg-muted/40 border border-border/40 rounded-full px-3 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground"
+              />
+              <div className="relative shrink-0 w-24">
+                <input
+                  value={o.quote}
+                  onChange={(e) => updateOutcome(o.id, "quote", e.target.value)}
+                  placeholder="Quote"
+                  inputMode="decimal"
+                  className={`w-full text-xs font-mono bg-muted/40 border rounded-full px-2.5 py-2 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center ${
+                    valid ? "border-green-500/30 text-green-400" : "border-border/40"
+                  }`}
+                />
+                {valid && (
+                  <span className="absolute -bottom-3.5 left-0 right-0 text-[9px] text-center text-muted-foreground">
+                    {((1 / q) * 100).toFixed(1)}%
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => removeOutcome(o.id)}
+                disabled={outcomes.length <= 2}
+                className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-30"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )
+        })}
+      </div>
+
+      <button
+        onClick={addOutcome}
+        disabled={outcomes.length >= 10}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 ml-7"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Ausgang hinzufügen ({outcomes.length}/10)
+      </button>
+
+      {overround != null && margin != null && (
+        <Card className="rounded-2xl border-border/40 bg-muted/20">
+          <CardContent className="p-4 space-y-3">
+            <div className="bg-muted/30 rounded-xl overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border/30">
+                    <th className="text-left px-3 py-1.5 text-muted-foreground font-medium">Ausgang</th>
+                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">Quote</th>
+                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">1 / Q</th>
+                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">impl. WS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {parsed.map((o, i) => (
+                    <tr key={i} className="border-b border-border/20 last:border-0">
+                      <td className="px-3 py-1.5 truncate max-w-17.5">{o.label || `Ausgang ${i + 1}`}</td>
+                      <td className="px-3 py-1.5 text-right font-mono">{o.q.toFixed(2)}</td>
+                      <td className="px-3 py-1.5 text-right font-mono text-muted-foreground">
+                        {(1 / o.q).toFixed(4)}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono text-muted-foreground">
+                        {((1 / o.q) * 100).toFixed(1)}%
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-muted/20">
+                    <td className="px-3 py-1.5 font-medium text-foreground/80" colSpan={2}>Summe</td>
+                    <td className="px-3 py-1.5 text-right font-mono font-semibold">{overround.toFixed(4)}</td>
+                    <td className="px-3 py-1.5 text-right font-mono font-semibold">
+                      {(overround * 100).toFixed(1)}%
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs text-muted-foreground">Overround</span>
+              <span className="font-mono text-sm font-semibold">{overround.toFixed(4)}</span>
+            </div>
+
+            <div className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${margenBg}`}>
+              <span className={`text-sm font-semibold ${margenColor}`}>{margenLabel}</span>
+              <div className="text-right">
+                <div className={`font-mono font-bold text-lg ${margenColor}`}>
+                  +{margin.toFixed(2)}%
+                </div>
+                <div className="text-xs text-muted-foreground font-mono">
+                  Buchmacher-Marge
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <ExplanationBox
+        title="Satz des Dalhoffs (Overround berechnen)"
+        text={`Formel: Overround = 1/Q₁ + 1/Q₂ + … + 1/Qₙ\n\nDu gibst alle Quoten eines Spiels bei einem Anbieter ein. Die Summe der Kehrwerte ergibt den Overround — also wie viel der Buchmacher insgesamt "einbaut".\n\nMarge (%) = (Overround − 1) × 100\n\nBeispiel (3-Weg-Markt):\n   Sieg 1.50 → 1/1.50 = 0.6667\n   Unent. 3.50 → 1/3.50 = 0.2857\n   Niederlage 4.20 → 1/4.20 = 0.2381\n   Overround = 0.6667 + 0.2857 + 0.2381 = 1.1905\n   Marge = (1.1905 − 1) × 100 = 19.05%\n\nDiesen Overround-Wert verwendest du im EV-Rechner.`}
+      />
+    </div>
+  )
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
+
+type Tab = "ev" | "dalhoff"
+
+export function KombiCalculator() {
+  const [tab, setTab] = useState<Tab>("ev")
+
+  return (
+    <div className="space-y-4">
       <div className="flex gap-1.5 bg-muted/40 rounded-full p-1">
-        {TABS.map(({ id, label }) => (
+        {(["ev", "dalhoff"] as Tab[]).map((id) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -332,14 +392,13 @@ export function KombiCalculator() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {label}
+            {id === "ev" ? "EV-Rechner" : "Overround / Dalhoff"}
           </button>
         ))}
       </div>
 
-      {tab === "kombi"   && <KombiSection />}
+      {tab === "ev"      && <EVSection />}
       {tab === "dalhoff" && <DalhoffSection />}
-      {tab === "prob"    && <ProbSection />}
     </div>
   )
 }
