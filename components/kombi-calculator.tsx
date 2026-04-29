@@ -32,6 +32,7 @@ interface BookmakerEntry { id: string; name: string; quote: string; overround: s
 
 function EVSection() {
   const [myQuote, setMyQuote] = useState("")
+  const [myStake, setMyStake] = useState("")
   const [bookmakers, setBookmakers] = useState<BookmakerEntry[]>([
     { id: uid(), name: "", quote: "", overround: "" },
     { id: uid(), name: "", quote: "", overround: "" },
@@ -69,15 +70,27 @@ function EVSection() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-xs text-muted-foreground mb-1.5">Deine Quote (zu spielen)</p>
-        <input
-          value={myQuote}
-          onChange={(e) => setMyQuote(e.target.value)}
-          placeholder="z.B. 3.95"
-          inputMode="decimal"
-          className="w-full text-xl font-mono bg-muted/40 border border-border/40 rounded-2xl px-4 py-3 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center"
-        />
+      <div className="flex gap-4">
+          <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Deine Quote (zu spielen)</p>
+              <input
+                value={myQuote}
+                onChange={(e) => setMyQuote(e.target.value)}
+                placeholder="z.B. 3.95"
+                inputMode="decimal"
+                className="w-full text-lg font-mono bg-muted/40 border border-border/40 rounded-2xl px-4 py-3 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center"
+              />
+          </div>
+          <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Dein Einsatz</p>
+              <input
+                value={myStake}
+                onChange={(e) => setMyStake(e.target.value)}
+                placeholder="z.B. 10,00€"
+                inputMode="decimal"
+                className="w-full text-lg font-mono bg-muted/40 border border-border/40 rounded-2xl px-4 py-3 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center"
+              />
+          </div>
       </div>
 
       <div>
@@ -203,6 +216,18 @@ function EVSection() {
                 <div className={`text-xs font-mono ${ev > 0 ? "text-green-400/70" : "text-red-400/70"}`}>
                   {ev > 0 ? "+" : ""}{ev.toFixed(3)} € pro 1 € Einsatz
                 </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between ">
+              <span className="text-xs text-muted-foreground font-bold ">
+                Erwarteter Gewinn pro {myStake} Einsatz
+              </span>
+              <div className="text-right">
+               {myStake ? 
+                  (ev*parseInt(myStake)).toFixed(2) + " €" 
+                : 
+                  (" ")
+               } 
               </div>
             </div>
           </CardContent>
