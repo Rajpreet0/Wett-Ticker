@@ -84,6 +84,7 @@ export const PROVIDERS: { value: string; label: string }[] = [
   { value: "Interwetten", label: "Interwetten" },
   { value: "Betano", label: "Betano" },
   { value: "Merkur", label: "Merkur" },
+  { value: "Oddset", label: "Oddset"},
   { value: "Sonstige", label: "Sonstige" },
 ]
 
