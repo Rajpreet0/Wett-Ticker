@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Plus, Trash2, TrendingUp, Info } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { Checkbox } from "./ui/checkbox"
 
 function uid() { return Math.random().toString(36).slice(2) }
 
@@ -247,6 +248,9 @@ function EVSection() {
 interface OutcomeEntry { id: string; label: string; quote: string }
 
 function DalhoffSection() {
+
+  const [checkedTax, setCheckedTax] = useState(false);
+  
   const [outcomes, setOutcomes] = useState<OutcomeEntry[]>([
     { id: uid(), label: "Sieg", quote: "" },
     { id: uid(), label: "Unentschieden", quote: "" },
@@ -264,9 +268,12 @@ function DalhoffSection() {
     setOutcomes((p) => p.map((o) => (o.id === id ? { ...o, [field]: value } : o)))
   }
 
+  const TAX = 0.053
+
   const parsed = outcomes
     .map((o) => ({ ...o, q: parseFloat(o.quote.replace(",", ".")) }))
     .filter((o) => !isNaN(o.q) && o.q >= 1.01)
+    .map((o) => ({ ...o, q: checkedTax ? o.q / (1 + TAX) : o.q }))
 
   const overround = parsed.length >= 2 ? parsed.reduce((sum, o) => sum + 1 / o.q, 0) : null
   const margin = overround != null ? (overround - 1) * 100 : null
@@ -337,6 +344,13 @@ function DalhoffSection() {
         Ausgang hinzufügen ({outcomes.length}/10)
       </button>
 
+      <div className="flex gap-4 items-center">
+        <Checkbox checked={checkedTax} onCheckedChange={setCheckedTax}/>
+        <p
+         className="text-xs text-muted-foreground hover:text-foreground"
+          >5.3% Steuer?</p>
+      </div>
+
       {overround != null && margin != null && (
         <Card className="rounded-2xl border-border/40 bg-muted/20">
           <CardContent className="p-4 space-y-3">
@@ -345,7 +359,9 @@ function DalhoffSection() {
                 <thead>
                   <tr className="border-b border-border/30">
                     <th className="text-left px-3 py-1.5 text-muted-foreground font-medium">Ausgang</th>
-                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">Quote</th>
+                    <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">
+                      Quote{checkedTax ? " (netto)" : ""}
+                    </th>
                     <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">1 / Q</th>
                     <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">WS%</th>
                   </tr>
