@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Plus, Trash2, TrendingUp, Info } from "lucide-react"
+import { useState } from "react"
+import { Plus, Trash2, TrendingUp, Info, BrushCleaning } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "./ui/checkbox"
 
@@ -268,6 +268,10 @@ function DalhoffSection() {
     setOutcomes((p) => p.map((o) => (o.id === id ? { ...o, [field]: value } : o)))
   }
 
+  function removeQuotes() {
+    setOutcomes((prev) => prev.map((o) => ({...o, quote: ""})));
+  }
+
   const TAX = 0.053
 
   const parsed = outcomes
@@ -295,9 +299,18 @@ function DalhoffSection() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        Alle Quoten eines Spiels bei <span className="font-medium text-foreground">einem</span> Anbieter eingeben (z.B. Sieg / X / Niederlage).
-      </p>
+      
+      <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            Alle Quoten eines Spiels bei <span className="font-medium text-foreground">einem</span> Anbieter eingeben (z.B. Sieg / X / Niederlage).
+          </p>
+          <button 
+            className="shrink-0 w-7 h-7 rounded-full border flex items-center justify-center text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 transition-colors disabled:opacity-30"
+            onClick={() => removeQuotes()}
+            >
+            <BrushCleaning className="h-3.5 w-3.5"/>
+          </button>
+      </div>
 
       <div className="space-y-2">
         {outcomes.map((o, idx) => {
