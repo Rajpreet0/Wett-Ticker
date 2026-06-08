@@ -20,10 +20,10 @@ declare global {
 export function OddspediaWidget({
   matchId,
   width = "360",
-  theme = "0",
+  theme = "1",
   language = "de",
-  primaryColor = "#283E5B",
-  accentColor = "#00B1FF",
+  primaryColor = "#0d1a24",
+  accentColor = "#1a8c2e",
 }: OddspediaWidgetProps) {
   const widgetKey = `oddspediaWidgetMatchCenter${matchId}`
   const containerId = `oddspedia-widget-match-center-${matchId}`
@@ -42,8 +42,8 @@ export function OddspediaWidget({
       odds_type: "1",
       language,
       primary_color: primaryColor,
-      primary_color_opacity: "0.9",
-      secondary_color: "#53647B",
+      primary_color_opacity: "1",
+      secondary_color: "#0a1520",
       accent_color: accentColor,
       font: "Roboto",
       logos: "true",
