@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Users, Swords, GitBranch, ChevronDown, ChevronUp, RefreshCw, X, TrendingUp, Loader2 } from "lucide-react"
+import { OddspediaCompetitionWidget } from "./oddspedia-competition-widget"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -108,10 +109,10 @@ const KO_META: Record<string, { label: string; color: string; order: number }> =
   FINAL: { label: "Finale",              color: "#FFD700", order: 6 },
 }
 
-// ─── Odds Popup ───────────────────────────────────────────────────────────────
+// ─── Odds Popup (The Odds API) ────────────────────────────────────────────────
 
 interface OddsBookmaker { name: string; home: string | null; draw: string | null; away: string | null }
-interface OddsData { bookmakers: OddsBookmaker[]; fixture_id: number | null; cached?: boolean; stale?: boolean }
+interface OddsData { bookmakers: OddsBookmaker[]; cached?: boolean; stale?: boolean }
 
 function OddsPopup({ game, onClose }: { game: ApiGame; onClose: () => void }) {
   const [odds, setOdds] = useState<OddsData | null>(null)
@@ -123,18 +124,13 @@ function OddsPopup({ game, onClose }: { game: ApiGame; onClose: () => void }) {
   const done = game.finished === "TRUE"
 
   useEffect(() => {
-    const params = new URLSearchParams({
-      game_id: game.id,
-      home,
-      away,
-    })
+    const params = new URLSearchParams({ game_id: game.id, home, away })
     fetch(`/api/wm-odds?${params}`)
       .then(r => r.json())
       .then(d => { setOdds(d); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })
-  }, [game.id])
+  }, [game.id, home, away])
 
-  // Close on backdrop click
   const onBackdrop = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose()
   }, [onClose])
@@ -204,20 +200,16 @@ function OddsPopup({ game, onClose }: { game: ApiGame; onClose: () => void }) {
               Quoten werden geladen…
             </div>
           )}
-
           {error && (
             <p className="text-center text-xs text-red-400/70 py-6">Quoten nicht verfügbar</p>
           )}
-
           {!loading && !error && odds && odds.bookmakers.length === 0 && (
             <p className="text-center text-xs text-muted-foreground/50 py-6 italic">
               Noch keine Quoten verfügbar
             </p>
           )}
-
           {!loading && !error && odds && odds.bookmakers.length > 0 && (
             <div className="space-y-2">
-              {/* Column headers */}
               <div className="grid grid-cols-4 gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 px-1">
                 <span>Anbieter</span>
                 <span className="text-center">1</span>
@@ -574,7 +566,7 @@ function BracketTreeView({ koGames }: { koGames: ApiGame[] }) {
 
 export function WmBracket() {
   const { games, loading, error, refresh, lastFetch } = useGames()
-  const [view, setView] = useState<"groups" | "ko" | "tree">("groups")
+  const [view, setView] = useState<"groups" | "ko" | "tree" | "odds">("groups")
   const [selectedGame, setSelectedGame] = useState<ApiGame | null>(null)
 
   const groupGames = games.filter(g => g.type === "group")
@@ -666,6 +658,16 @@ export function WmBracket() {
           <GitBranch className="h-3.5 w-3.5" />
           Baum
         </button>
+        <button
+          onClick={() => setView("odds")}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
+          style={view === "odds"
+            ? { background: "rgba(3,105,199,0.22)", color: "#60a5fa", border: "1px solid rgba(3,105,199,0.45)" }
+            : { color: "#4a5a7a" }}
+        >
+          <TrendingUp className="h-3.5 w-3.5" />
+          Quoten
+        </button>
       </div>
 
       {/* Loading skeleton */}
@@ -742,6 +744,18 @@ export function WmBracket() {
               ) : (
                 <BracketTreeView koGames={koGames} />
               )}
+            </motion.div>
+          )}
+
+          {view === "odds" && (
+            <motion.div
+              key="odds"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+            >
+              <OddspediaCompetitionWidget />
             </motion.div>
           )}
         </AnimatePresence>
