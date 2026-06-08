@@ -93,6 +93,33 @@ export default function RootLayout({
         <ServiceWorkerRegistrar />
         {children}
         <Toaster richColors position="top-center" />
+        <footer
+          className="flex items-center justify-center gap-2 py-3 px-4 border-t"
+          style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(6,13,20,0.95)" }}
+        >
+          <a
+            href="https://oddspedia.com"
+            target="_blank"
+            rel="nofollow noopener noreferrer"
+            className="flex items-center gap-2"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://widgets.oddspedia.com/images/logo-oddspedia-light.svg"
+              alt="Oddspedia"
+              width={90}
+              height={18}
+              style={{ opacity: 0.6 }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
+            />
+            <span
+              className="text-[10px] font-medium"
+              style={{ color: "rgba(255,255,255,0.35)" }}
+            >
+              Data powered by Oddspedia
+            </span>
+          </a>
+        </footer>
       </body>
     </html>
   )

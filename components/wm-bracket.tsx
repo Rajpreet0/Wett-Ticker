@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Users, Swords, GitBranch, ChevronDown, ChevronUp, RefreshCw, X, TrendingUp, Loader2 } from "lucide-react"
+import { Users, Swords, GitBranch, ChevronDown, ChevronUp, RefreshCw, X, TrendingUp } from "lucide-react"
+import { OddspediaWidget } from "./oddspedia-widget"
+import { OddspediaCompetitionWidget } from "./oddspedia-competition-widget"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -108,36 +110,19 @@ const KO_META: Record<string, { label: string; color: string; order: number }> =
   FINAL: { label: "Finale",              color: "#FFD700", order: 6 },
 }
 
-// ─── Odds Popup ───────────────────────────────────────────────────────────────
-
-interface OddsBookmaker { name: string; home: string | null; draw: string | null; away: string | null }
-interface OddsData { bookmakers: OddsBookmaker[]; fixture_id: number | null; cached?: boolean; stale?: boolean }
+// ─── Odds Popup (Oddspedia Widget) ────────────────────────────────────────────
 
 function OddsPopup({ game, onClose }: { game: ApiGame; onClose: () => void }) {
-  const [odds, setOdds] = useState<OddsData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
-
   const home = teamName(game, "home")
   const away = teamName(game, "away")
-  const done = game.finished === "TRUE"
 
-  useEffect(() => {
-    const params = new URLSearchParams({
-      game_id: game.id,
-      home,
-      away,
-    })
-    fetch(`/api/wm-odds?${params}`)
-      .then(r => r.json())
-      .then(d => { setOdds(d); setLoading(false) })
-      .catch(() => { setError(true); setLoading(false) })
-  }, [game.id])
-
-  // Close on backdrop click
   const onBackdrop = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose()
   }, [onClose])
+
+  // game.oddspedia_id would come from game metadata once mapped;
+  // falls back to game.id for now (won't match until IDs are mapped)
+  const oddspediaMatchId = (game as ApiGame & { oddspedia_id?: string }).oddspedia_id ?? game.id
 
   return (
     <div
@@ -160,96 +145,19 @@ function OddsPopup({ game, onClose }: { game: ApiGame; onClose: () => void }) {
         <div className="flex items-center justify-between px-4 pt-4 pb-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" style={{ color: "#4ade80" }} />
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#4ade80" }}>Wettquoten</span>
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#4ade80" }}>Wettquoten</span>
+              <span className="text-xs text-muted-foreground ml-2">{short(home)} vs {short(away)}</span>
+            </div>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Match info */}
-        <div className="px-4 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="text-xl">{flag(home)}</span>
-              <span className="text-sm font-bold truncate">{short(home)}</span>
-            </div>
-            {done ? (
-              <span className="text-sm font-black font-mono px-2 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.08)" }}>
-                {game.home_score} : {game.away_score}
-              </span>
-            ) : (
-              <div className="text-center shrink-0">
-                <div className="text-[10px] text-muted-foreground font-mono">{parseDate(game.local_date)}</div>
-                <div className="text-xs font-bold text-muted-foreground/60">vs</div>
-              </div>
-            )}
-            <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-              <span className="text-sm font-bold truncate text-right">{short(away)}</span>
-              <span className="text-xl">{flag(away)}</span>
-            </div>
-          </div>
-          {game.group && (
-            <p className="text-center text-[10px] text-muted-foreground/50 mt-1.5">
-              Gruppe {game.group} · Spieltag {game.matchday}
-            </p>
-          )}
-        </div>
-
-        {/* Odds body */}
-        <div className="px-4 py-3">
-          {loading && (
-            <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground/60 text-xs">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Quoten werden geladen…
-            </div>
-          )}
-
-          {error && (
-            <p className="text-center text-xs text-red-400/70 py-6">Quoten nicht verfügbar</p>
-          )}
-
-          {!loading && !error && odds && odds.bookmakers.length === 0 && (
-            <p className="text-center text-xs text-muted-foreground/50 py-6 italic">
-              Noch keine Quoten verfügbar
-            </p>
-          )}
-
-          {!loading && !error && odds && odds.bookmakers.length > 0 && (
-            <div className="space-y-2">
-              {/* Column headers */}
-              <div className="grid grid-cols-4 gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 px-1">
-                <span>Anbieter</span>
-                <span className="text-center">1</span>
-                <span className="text-center">X</span>
-                <span className="text-center">2</span>
-              </div>
-              {odds.bookmakers.map(bm => (
-                <div
-                  key={bm.name}
-                  className="grid grid-cols-4 gap-1 items-center rounded-xl px-3 py-2.5"
-                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }}
-                >
-                  <span className="text-[11px] font-semibold text-foreground/80 truncate">{bm.name}</span>
-                  {[bm.home, bm.draw, bm.away].map((val, i) => (
-                    <span
-                      key={i}
-                      className="text-center text-xs font-black rounded-lg py-1"
-                      style={{
-                        color: val ? "#f8fafc" : "#475569",
-                        background: val ? "rgba(74,222,128,0.12)" : "transparent",
-                      }}
-                    >
-                      {val ?? "–"}
-                    </span>
-                  ))}
-                </div>
-              ))}
-              {odds.stale && (
-                <p className="text-[10px] text-muted-foreground/40 text-center pt-1">Quoten möglicherweise veraltet</p>
-              )}
-            </div>
-          )}
+        {/* Oddspedia widget */}
+        <div className="p-2">
+          <OddspediaWidget matchId={oddspediaMatchId} />
         </div>
       </motion.div>
     </div>
@@ -574,7 +482,7 @@ function BracketTreeView({ koGames }: { koGames: ApiGame[] }) {
 
 export function WmBracket() {
   const { games, loading, error, refresh, lastFetch } = useGames()
-  const [view, setView] = useState<"groups" | "ko" | "tree">("groups")
+  const [view, setView] = useState<"groups" | "ko" | "tree" | "odds">("groups")
   const [selectedGame, setSelectedGame] = useState<ApiGame | null>(null)
 
   const groupGames = games.filter(g => g.type === "group")
@@ -666,6 +574,16 @@ export function WmBracket() {
           <GitBranch className="h-3.5 w-3.5" />
           Baum
         </button>
+        <button
+          onClick={() => setView("odds")}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
+          style={view === "odds"
+            ? { background: "rgba(3,105,199,0.22)", color: "#60a5fa", border: "1px solid rgba(3,105,199,0.45)" }
+            : { color: "#4a5a7a" }}
+        >
+          <TrendingUp className="h-3.5 w-3.5" />
+          Quoten
+        </button>
       </div>
 
       {/* Loading skeleton */}
@@ -742,6 +660,18 @@ export function WmBracket() {
               ) : (
                 <BracketTreeView koGames={koGames} />
               )}
+            </motion.div>
+          )}
+
+          {view === "odds" && (
+            <motion.div
+              key="odds"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+            >
+              <OddspediaCompetitionWidget />
             </motion.div>
           )}
         </AnimatePresence>
