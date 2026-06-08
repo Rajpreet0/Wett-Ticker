@@ -10,18 +10,14 @@ const supabase = createClient(
 const SPORT_KEY = "soccer_fifa_world_cup"
 const BASE = "https://api.the-odds-api.com/v4"
 
-// eu region covers Bwin, Bet365, Interwetten
-const REGIONS = "eu"
+const REGIONS = "eu,uk"
 const MARKETS = "h2h" // head-to-head = 1X2
 
-// Best available bookmakers in the EU region for WM 2026
-const BOOKMAKER_FILTER = ["tipico_de", "winamax_de", "williamhill", "betsson", "pinnacle"]
+const BOOKMAKER_FILTER = ["tipico_de", "winamax_de", "betway"]
 const BOOKMAKER_LABELS: Record<string, string> = {
   tipico_de: "Tipico",
   winamax_de: "Winamax",
-  williamhill: "William Hill",
-  betsson: "Betsson",
-  pinnacle: "Pinnacle",
+  betway: "Betway",
 }
 
 const TTL_MS = 6 * 60 * 60 * 1000 // 6h cache – odds update slowly pre-match
