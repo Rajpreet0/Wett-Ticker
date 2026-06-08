@@ -110,7 +110,6 @@ export default function RootLayout({
               width={90}
               height={18}
               style={{ opacity: 0.6 }}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
             />
             <span
               className="text-[10px] font-medium"
