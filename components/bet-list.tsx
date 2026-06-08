@@ -6,6 +6,7 @@ import { de } from "date-fns/locale"
 import { Loader2, Inbox, CalendarDays } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useBets } from "@/hooks/use-bets"
+import { useHypeChannel } from "@/hooks/use-hype-channel"
 import { BetCard } from "./bet-card"
 import { PullToRefresh } from "./pull-to-refresh"
 import type { Bet } from "@/lib/types"
@@ -51,6 +52,11 @@ export function BetList() {
   const { bets, isLoading, error, refresh } = useBets()
   const [filterMode, setFilterMode] = useState<FilterMode>("today")
   const [customDate, setCustomDate] = useState<Date | null>(null)
+  const [hypeCounts, setHypeCounts] = useState<Record<string, number>>({})
+
+  const { sendHype } = useHypeChannel((betId) => {
+    setHypeCounts((prev) => ({ ...prev, [betId]: (prev[betId] ?? 0) + 1 }))
+  })
 
   if (isLoading) {
     return (
@@ -202,7 +208,7 @@ export function BetList() {
               <motion.div className="space-y-3" variants={listVariants}>
                 {dateBets.map((bet, i) => (
                   <motion.div key={bet.id} variants={itemVariants} custom={i}>
-                    <BetCard bet={bet} index={i} />
+                    <BetCard bet={bet} index={i} hypeCount={hypeCounts[bet.id] ?? 0} onHype={sendHype} />
                   </motion.div>
                 ))}
               </motion.div>

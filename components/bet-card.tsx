@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { format } from "date-fns"
 import { de } from "date-fns/locale"
 import { motion } from "framer-motion"
-import { shootConfetti } from "./confetti-burst"
+import { shootConfetti, shootFireConfetti } from "./confetti-burst"
 import {
   Calendar,
   TrendingUp,
@@ -33,6 +33,8 @@ import { BetCommentSection } from "./bet-comment-section"
 interface BetCardProps {
   bet: Bet
   index?: number
+  hypeCount?: number
+  onHype?: (betId: string) => void
 }
 
 function getSportIcon(sport: string, category: string): LucideIcon {
@@ -67,11 +69,13 @@ const cardVariants = {
   },
 }
 
-export function BetCard({ bet, index = 0 }: BetCardProps) {
+export function BetCard({ bet, index = 0, hypeCount = 0, onHype }: BetCardProps) {
   const [isUpdating, setIsUpdating] = useState(false)
   const [status, setStatus] = useState(bet.status)
   const [isJustWon, setIsJustWon] = useState(false)
+  const [isHypeActive, setIsHypeActive] = useState(false)
   const prevStatusRef = useRef(bet.status)
+  const prevHypeRef = useRef(0)
   const [upvotes, setUpvotes] = useState(bet.upvotes ?? 0)
   const [downvotes, setDownvotes] = useState(bet.downvotes ?? 0)
   const [myVote, setMyVote] = useState<"up" | "down" | null>(null)
@@ -86,6 +90,16 @@ export function BetCard({ bet, index = 0 }: BetCardProps) {
     }
     prevStatusRef.current = status
   }, [status])
+
+  useEffect(() => {
+    if (hypeCount > prevHypeRef.current) {
+      prevHypeRef.current = hypeCount
+      shootFireConfetti()
+      setIsHypeActive(true)
+      const t = setTimeout(() => setIsHypeActive(false), 2500)
+      return () => clearTimeout(t)
+    }
+  }, [hypeCount])
 
   useEffect(() => {
     let id = localStorage.getItem("wett-voter-id")
@@ -148,6 +162,10 @@ export function BetCard({ bet, index = 0 }: BetCardProps) {
       setDownvotes(prev.downvotes)
       setMyVote(prev.myVote)
     }
+  }
+
+  function hype() {
+    onHype?.(bet.id)
   }
 
   const isCasino  = bet.category === "casino"
@@ -213,10 +231,21 @@ export function BetCard({ bet, index = 0 }: BetCardProps) {
                     `0 0 12px ${catStyle.ring}`,
                   ],
                 }
+              : isHypeActive
+              ? {
+                  scale: [1, 1.18, 0.92, 1.1, 1],
+                  boxShadow: [
+                    "0 0 10px rgba(255,102,0,0.5)",
+                    "0 0 28px rgba(255,80,0,0.85)",
+                    "0 0 16px rgba(255,140,0,0.6)",
+                    "0 0 22px rgba(255,60,0,0.7)",
+                    `0 0 10px ${catStyle.ring}`,
+                  ],
+                }
               : { boxShadow: `0 0 10px ${catStyle.ring}` }
             }
-            transition={isJustWon
-              ? { duration: 3.5, ease: "easeOut" }
+            transition={isJustWon || isHypeActive
+              ? { duration: isJustWon ? 3.5 : 2.5, ease: "easeOut" }
               : { duration: 0.4 }
             }
             className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
@@ -404,6 +433,20 @@ export function BetCard({ bet, index = 0 }: BetCardProps) {
               >
                 <ThumbsDown className="h-3.5 w-3.5" />
                 <span className="font-mono">{downvotes}</span>
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.12 }}
+                whileTap={{ scale: 0.82 }}
+                onClick={hype}
+                className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors"
+                style={isHypeActive
+                  ? { background: "rgba(255,102,0,0.25)", color: "#ff8800", border: "1px solid rgba(255,102,0,0.45)" }
+                  : { background: "rgba(255,102,0,0.10)", color: "#ff7722", border: "1px solid rgba(255,102,0,0.20)" }
+                }
+              >
+                <Flame className="h-3.5 w-3.5" />
+                Anfeuern
               </motion.button>
             </div>
           </div>
