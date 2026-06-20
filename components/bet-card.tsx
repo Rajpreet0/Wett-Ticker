@@ -20,6 +20,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Sparkles,
+  Star,
   type LucideIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -293,6 +294,22 @@ export function BetCard({ bet, index = 0, hypeCount = 0, onHype }: BetCardProps)
         {/* Tip text */}
         {bet.tip && (
           <p className="text-sm leading-relaxed text-foreground/85">{bet.tip}</p>
+        )}
+
+        {/* Rating */}
+        {bet.rating != null && bet.rating > 0 && (
+          <div className="flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <Star
+                key={n}
+                className="h-3.5 w-3.5"
+                style={n <= bet.rating!
+                  ? { fill: "#FFD700", color: "#FFD700" }
+                  : { fill: "transparent", color: "var(--muted-foreground)", opacity: 0.3 }
+                }
+              />
+            ))}
+          </div>
         )}
 
         {/* Sport details grid */}
