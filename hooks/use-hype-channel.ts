@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useLayoutEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { RealtimeChannel } from "@supabase/supabase-js"
 
 export function useHypeChannel(onHype: (betId: string) => void) {
   const cbRef = useRef(onHype)
-  cbRef.current = onHype
+  useLayoutEffect(() => { cbRef.current = onHype })
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   useEffect(() => {
