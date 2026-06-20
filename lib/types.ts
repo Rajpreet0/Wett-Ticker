@@ -25,6 +25,7 @@ export interface Bet {
   action_end_date: string | null
   action_montags_only: boolean | null   // legacy, use action_weekdays
   action_weekdays: string | null        // comma-separated JS day numbers e.g. "1,3,5" = Mon/Wed/Fri
+  rating?: number | null                // 1–5 Sterne Bewertung (optional)
 }
 
 export interface Comment {

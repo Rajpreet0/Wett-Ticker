@@ -21,6 +21,7 @@ const betSchema = z.object({
   action_end_date: z.string().optional().transform((v) => v === "" ? null : (v ?? null)),
   action_montags_only: z.boolean().nullable().optional(),
   action_weekdays: z.string().optional().transform((v) => v === "" ? null : (v ?? null)),
+  rating: z.number().int().min(1).max(5).nullable().optional(),
 })
 
 export async function GET() {

@@ -151,10 +151,13 @@ const CATEGORY_CONFIG = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+const RATING_LABELS = ["", "Schlecht", "Naja", "Ok", "Gut", "Top Value!"]
+
 export function BetForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  // Weekday selection managed outside form (synced to action_weekdays string)
   const [selectedDays, setSelectedDays] = useState<number[]>([])
+  const [rating, setRating] = useState(0)
+  const [hoverRating, setHoverRating] = useState(0)
 
   const form = useForm<FormInput>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -234,7 +237,7 @@ export function BetForm() {
       const res = await fetch("/api/bets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(typedValues),
+        body: JSON.stringify({ ...typedValues, ...(rating > 0 ? { rating } : {}) }),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -246,6 +249,7 @@ export function BetForm() {
       })
       form.reset()
       setSelectedDays([])
+      setRating(0)
       form.setValue("member_name", typedValues.member_name)
       form.setValue("category", typedValues.category as Category)
     } catch (err) {
@@ -685,6 +689,44 @@ export function BetForm() {
             </div>
           </div>
         )}
+
+        {/* ── Bewertung ── */}
+        <div className="space-y-1.5">
+          <p className="text-sm font-medium flex items-center gap-1.5">
+            <Star className="h-3.5 w-3.5" /> Bewertung
+            <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+          </p>
+          <div
+            className="flex items-center gap-1"
+            onMouseLeave={() => setHoverRating(0)}
+          >
+            {[1, 2, 3, 4, 5].map((n) => {
+              const filled = n <= (hoverRating || rating)
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setRating((prev) => prev === n ? 0 : n)}
+                  onMouseEnter={() => setHoverRating(n)}
+                  className="p-0.5 transition-transform hover:scale-110"
+                >
+                  <Star
+                    className="h-7 w-7 transition-colors"
+                    style={filled
+                      ? { fill: "#FFD700", color: "#FFD700" }
+                      : { fill: "transparent", color: "var(--muted-foreground)" }
+                    }
+                  />
+                </button>
+              )
+            })}
+            {(hoverRating || rating) > 0 && (
+              <span className="ml-2 text-xs text-muted-foreground">
+                {RATING_LABELS[hoverRating || rating]}
+              </span>
+            )}
+          </div>
+        </div>
 
         <Button type="submit" className="w-full rounded-xl" disabled={isSubmitting}>
           <Zap className="h-4 w-4 mr-2" />
