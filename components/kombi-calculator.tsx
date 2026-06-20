@@ -431,9 +431,65 @@ function DalhoffSection() {
   )
 }
 
+// ── Steuer Rechner ────────────────────────────────────────────────────────────
+function SteuerSection() {
+
+  // Qnetto = 1 + (Q-1) * 0,947
+  const [myQuote, setMyQuote] = useState("");
+
+  const parsedMyQuote = parseFloat(myQuote.replace(",", "."))
+  const myQuoteValid = !isNaN(parsedMyQuote) && parsedMyQuote >= 1.01
+
+  const qNetto = myQuoteValid ? 1 + (parsedMyQuote - 1) * 0.947 : null
+
+  return (
+    <div className="space-y-4">
+        <div>
+            <p className="text-xs text-muted-foreground mb-1.5">Deine Quote (zu spielen)</p>
+            <input
+              value={myQuote}
+              onChange={(e) => setMyQuote(e.target.value)}
+              placeholder="z.B. 3.95"
+              inputMode="decimal"
+              className="w-full text-lg font-mono bg-muted/40 border border-border/40 rounded-2xl px-4 py-3 outline-none focus:border-primary/50 placeholder:text-muted-foreground text-center"
+            />
+        </div>
+
+        {qNetto != null && (
+          <Card className="rounded-2xl border-border/40 bg-muted/20">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs text-muted-foreground">Brutto-Quote</span>
+                <span className="font-mono text-sm text-muted-foreground">{parsedMyQuote.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs text-muted-foreground">Steuer (5,3 %)</span>
+                <span className="font-mono text-sm text-red-400">
+                  −{((parsedMyQuote - 1) * 0.053).toFixed(4)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-blue-500/20 bg-blue-500/8 px-3 py-2.5">
+                <span className="text-xs text-muted-foreground">
+                  Netto-Quote <span className="text-muted-foreground/60">(nach Steuer)</span>
+                </span>
+                <span className="font-mono font-bold text-lg text-blue-400">{qNetto.toFixed(4)}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <ExplanationBox
+          title="Wie wird die Netto-Quote berechnet?"
+          text={`Formel: Q_netto = 1 + (Q − 1) × 0,947\n\nIn Deutschland wird eine Sportwettensteuer von 5,3 % auf den Gewinnanteil erhoben. Dadurch reduziert sich dein effektiver Gewinn.\n\nBeispiel:\n   Brutto-Quote: 3,95\n   Gewinnanteil: 3,95 − 1 = 2,95\n   Nach Steuer:  2,95 × 0,947 = 2,7437\n   Netto-Quote:  1 + 2,7437 = 3,7437\n\nDiese Netto-Quote zeigt, was du nach Abzug der Steuer effektiv erhältst.`}
+        />
+    </div>
+  )
+}
+
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
-type Tab = "ev" | "dalhoff"
+type Tab = "ev" | "dalhoff" | "steuer"
 
 export function KombiCalculator() {
   const [tab, setTab] = useState<Tab>("ev")
@@ -441,7 +497,7 @@ export function KombiCalculator() {
   return (
     <div className="space-y-4">
       <div className="flex gap-1.5 bg-muted/40 rounded-full p-1">
-        {(["ev", "dalhoff"] as Tab[]).map((id) => (
+        {(["ev", "dalhoff", "steuer"] as Tab[]).map((id) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -451,13 +507,16 @@ export function KombiCalculator() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {id === "ev" ? "EV-Rechner" : "Overround / Dalhoff"}
+            {id === "ev" && "EV-Rechner"}
+            {id === "dalhoff" && "Overround / Dalhoff"}
+            {id === "steuer" && "Steuer Rechner"}
           </button>
         ))}
       </div>
 
       {tab === "ev"      && <EVSection />}
       {tab === "dalhoff" && <DalhoffSection />}
+      {tab === "steuer" && <SteuerSection/>}
     </div>
   )
 }
